@@ -1,0 +1,75 @@
+.container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  perspective: 1000px;
+}
+
+.cardInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.isRevealed {
+  transform: rotateY(180deg);
+  cursor: default;
+}
+
+.isInteractive:hover {
+  transform: translateY(-5px);
+}
+
+.face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden; /* Safari */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-width: 0 0 4px 0;
+  border-style: solid;
+}
+
+/* --- Front (Hidden) --- */
+.front {
+  background: #262626; /* neutral-800 */
+  color: white;
+  border-color: #404040;
+}
+
+/* Spymaster Hints (Front borders) */
+.hintRed { border-color: rgba(239, 68, 68, 0.5); background: rgba(69, 10, 10, 0.4); }
+.hintBlue { border-color: rgba(59, 130, 246, 0.5); background: rgba(23, 37, 84, 0.4); }
+.hintNeutral { border-color: rgba(245, 158, 11, 0.4); }
+.hintAssassin { border-color: #525252; background: #000; color: var(--red-primary); }
+
+/* --- Back (Revealed) --- */
+.back {
+  transform: rotateY(180deg);
+}
+
+.backRed { background: var(--red-primary); border-color: var(--red-border); color: white; }
+.backBlue { background: var(--blue-primary); border-color: var(--blue-border); color: white; }
+.backNeutral { background: #fef3c7; border-color: #fcd34d; color: #171717; }
+.backAssassin { background: #0a0a0a; border-color: #262626; color: var(--red-primary); }
+
+.assassinIcon {
+  font-size: 2rem;
+  opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .face { font-size: 1rem; }
+}
