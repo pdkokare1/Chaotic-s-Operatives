@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { GameState, ROLES } from "@operative/shared";
 import GameCard from "./GameCard";
