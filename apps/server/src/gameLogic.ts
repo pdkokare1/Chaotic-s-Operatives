@@ -1,12 +1,14 @@
-import { GameState, Card, TEAMS, CARD_TYPES, Team } from "@operative/shared";
+import { GameState, Card, TEAMS, CARD_TYPES } from "@operative/shared";
 
-// A larger dictionary for more replayability
+// EXPANDED WORD LIST (50+ words)
 const WORD_LIST = [
   "ENGINE", "HOTEL", "TOKYO", "KEY", "CODE", "AGENT", "SPACE", "DANCE",
   "APPLE", "GLASS", "SCREEN", "SOUND", "WAVE", "LIGHT", "ZERO", "GHOST",
   "TIME", "LINE", "WEB", "ROBOT", "IRON", "GOLD", "SILVER", "LEMON", "MOON",
   "NIGHT", "SKY", "STAR", "PLANET", "ROCK", "PAPER", "SCISSORS", "FIRE",
-  "WATER", "WIND", "EARTH", "MAGIC", "LION", "TIGER", "BEAR", "SHARK"
+  "WATER", "WIND", "EARTH", "MAGIC", "LION", "TIGER", "BEAR", "SHARK",
+  "DOCTOR", "NURSE", "KING", "QUEEN", "PIZZA", "BURGER", "TRAIN", "PLANE",
+  "PILOT", "BOMB", "LASER", "ALIEN", "ZOMBIE", "VAMPIRE", "NINJA", "PIRATE"
 ];
 
 export function generateGame(roomCode: string): GameState {
@@ -31,14 +33,17 @@ export function generateGame(roomCode: string): GameState {
     revealed: false 
   }));
 
+  // Determine starting team based on who has 9 cards (It's usually Red in this logic, but good to be explicit)
+  // In this fixed logic, Red always has 9, so Red always starts.
+  
   return {
     roomCode,
     phase: "playing",
     turn: TEAMS.RED,
     board,
-    scores: { red: 9, blue: 8 }, // Counts down to 0
+    scores: { red: 9, blue: 8 },
     winner: null,
-    logs: ["Mission Started. Red Team, awaiting orders."]
+    logs: ["Mission Started. Red Team's Turn."]
   };
 }
 
@@ -50,10 +55,9 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   if (cardIndex === -1) return gameState;
   
   const card = gameState.board[cardIndex];
-  if (card.revealed) return gameState; // Ignore if already clicked
+  if (card.revealed) return gameState; 
 
   // 2. Reveal Card
-  // We create a new board array to keep state immutable-ish
   const newBoard = [...gameState.board];
   newBoard[cardIndex] = { ...card, revealed: true };
   
@@ -63,22 +67,18 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
 
   // 3. Apply Rules
   if (card.type === CARD_TYPES.ASSASSIN) {
-    // RULE: Assassin clicked -> Instant Loss
     newState.phase = "game_over";
     newState.winner = opponentTeam;
     newState.logs.push(`FATAL ERROR: ${currentTeam.toUpperCase()} Hit the Assassin! ${opponentTeam.toUpperCase()} Wins.`);
   } 
   else if (card.type === CARD_TYPES.NEUTRAL) {
-    // RULE: Neutral clicked -> Turn Ends
     newState.turn = opponentTeam;
     newState.logs.push(`${currentTeam.toUpperCase()} hit a civilian. Turn over.`);
   } 
   else if (card.type === currentTeam) {
-    // RULE: Correct Guess -> Score -1, Turn Continues
     newState.scores[currentTeam] -= 1;
     newState.logs.push(`${currentTeam.toUpperCase()} found an Agent!`);
 
-    // Win Check
     if (newState.scores[currentTeam] === 0) {
       newState.phase = "game_over";
       newState.winner = currentTeam;
@@ -86,12 +86,10 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
     }
   } 
   else {
-    // RULE: Opponent Card -> Turn Ends, Opponent Score -1
     newState.scores[opponentTeam] -= 1;
     newState.turn = opponentTeam;
     newState.logs.push(`${currentTeam.toUpperCase()} found an Enemy Spy! Turn over.`);
 
-    // Win Check (Opponent might win if you click their last card)
     if (newState.scores[opponentTeam] === 0) {
       newState.phase = "game_over";
       newState.winner = opponentTeam;
