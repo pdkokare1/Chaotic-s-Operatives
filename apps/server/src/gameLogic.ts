@@ -4,12 +4,15 @@ import { GameState, Card, TEAMS, CARD_TYPES } from "@operative/shared";
 const WORD_LIST = [
   "ENGINE", "HOTEL", "TOKYO", "KEY", "CODE", "AGENT", "SPACE", "DANCE",
   "APPLE", "GLASS", "SCREEN", "SOUND", "WAVE", "LIGHT", "ZERO", "GHOST",
-  "TIME", "LINE", "WEB", "ROBOT", "IRON", "GOLD", "SILVER", "LEMON", "MOON"
+  "TIME", "LINE", "WEB", "ROBOT", "IRON", "GOLD", "SILVER", "LEMON", "MOON",
+  "NIGHT", "SKY", "STAR", "PLANET", "ROCK", "PAPER", "SCISSORS", "FIRE"
 ];
 
 export function generateGame(roomCode: string): GameState {
-  // 1. Shuffle Words
-  const shuffledWords = [...WORD_LIST].sort(() => 0.5 - Math.random()).slice(0, 25);
+  // 1. Shuffle Words (Pick 25 random words)
+  const shuffledWords = [...WORD_LIST]
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 25);
 
   // 2. Assign Colors (9 Red, 8 Blue, 7 Neutral, 1 Assassin)
   // We default Red to start (9 cards)
