@@ -1,13 +1,13 @@
-import { GameState, Card, TEAMS, CARD_TYPES } from "@operative/shared";
-import { WORD_LIST } from "./words"; // Import the massive list
+import { GameState, Card, TEAMS, CARD_TYPES, Player, Team, ROLES } from "@operative/shared";
+import { WORD_LIST } from "./words";
 
 export function generateGame(roomCode: string): GameState {
-  // 1. Shuffle Words (Pick 25 random words from the massive list)
+  // 1. Shuffle Words
   const shuffledWords = [...WORD_LIST]
     .sort(() => 0.5 - Math.random())
     .slice(0, 25);
 
-  // 2. Assign Colors (9 Red, 8 Blue, 7 Neutral, 1 Assassin)
+  // 2. Assign Colors
   const types = [
     ...Array(9).fill(CARD_TYPES.RED),
     ...Array(8).fill(CARD_TYPES.BLUE),
@@ -22,20 +22,65 @@ export function generateGame(roomCode: string): GameState {
     type: types[index],
     revealed: false 
   }));
-  
+
   return {
     roomCode,
-    phase: "playing",
+    phase: "lobby", // Start in Lobby now!
     turn: TEAMS.RED,
     board,
+    players: [], // Start empty
     scores: { red: 9, blue: 8 },
     winner: null,
-    logs: ["Mission Started. Red Team's Turn."]
+    logs: ["Waiting for players..."]
   };
 }
 
+// --- Player Management ---
+export function addPlayer(gameState: GameState, id: string, name: string): GameState {
+  // Auto-assign team to balance numbers
+  const redCount = gameState.players.filter(p => p.team === TEAMS.RED).length;
+  const blueCount = gameState.players.filter(p => p.team === TEAMS.BLUE).length;
+  const team = redCount <= blueCount ? TEAMS.RED : TEAMS.BLUE;
+
+  const newPlayer: Player = {
+    id,
+    name,
+    team,
+    role: ROLES.OPERATIVE // Default to Operative
+  };
+
+  return {
+    ...gameState,
+    players: [...gameState.players, newPlayer]
+  };
+}
+
+export function removePlayer(gameState: GameState, id: string): GameState {
+  return {
+    ...gameState,
+    players: gameState.players.filter(p => p.id !== id)
+  };
+}
+
+export function updatePlayer(gameState: GameState, id: string, updates: Partial<Player>): GameState {
+  return {
+    ...gameState,
+    players: gameState.players.map(p => p.id === id ? { ...p, ...updates } : p)
+  };
+}
+
+export function startGame(gameState: GameState): GameState {
+  if (gameState.phase !== "lobby") return gameState;
+  
+  return {
+    ...gameState,
+    phase: "playing",
+    logs: [...gameState.logs, "Game Started! Red Team's Turn."]
+  };
+}
+
+// --- Gameplay Logic ---
 export function makeMove(gameState: GameState, cardId: string): GameState {
-  // 1. Validation
   if (gameState.phase !== "playing") return gameState;
   
   const cardIndex = gameState.board.findIndex(c => c.id === cardId);
@@ -44,7 +89,6 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   const card = gameState.board[cardIndex];
   if (card.revealed) return gameState; 
 
-  // 2. Reveal Card
   const newBoard = [...gameState.board];
   newBoard[cardIndex] = { ...card, revealed: true };
   
@@ -52,7 +96,6 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   const currentTeam = newState.turn;
   const opponentTeam = currentTeam === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED;
 
-  // 3. Apply Rules
   if (card.type === CARD_TYPES.ASSASSIN) {
     newState.phase = "game_over";
     newState.winner = opponentTeam;
