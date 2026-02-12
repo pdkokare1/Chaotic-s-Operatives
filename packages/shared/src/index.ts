@@ -13,9 +13,22 @@ export const CARD_TYPES = {
   ASSASSIN: "assassin",
 } as const;
 
+export const ROLES = {
+  SPYMASTER: "spymaster",
+  OPERATIVE: "operative",
+} as const;
+
 // --- Types ---
 export type Team = (typeof TEAMS)[keyof typeof TEAMS];
 export type CardType = (typeof CARD_TYPES)[keyof typeof CARD_TYPES];
+export type Role = (typeof ROLES)[keyof typeof ROLES];
+
+export interface Player {
+  id: string;
+  name: string;
+  team: Team;
+  role: Role;
+}
 
 export interface Card {
   id: string;
@@ -29,9 +42,10 @@ export interface GameState {
   phase: "lobby" | "playing" | "game_over";
   turn: Team;
   board: Card[];
+  players: Player[]; // New: List of players
   scores: { red: number; blue: number };
   winner: Team | null;
-  logs: string[]; // To show "Red Team guessed APPLE"
+  logs: string[];
 }
 
 // --- Validation Schemas ---
