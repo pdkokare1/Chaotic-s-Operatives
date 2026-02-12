@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../context/SocketContext";
 import { GameState } from "@operative/shared";
-import GameBoard from "../components/GameBoard";
-import Lobby from "../components/Lobby";
-import styles from "./Home.module.css"; // Import CSS Module
+import GameBoard from "./components/GameBoard";
+import Lobby from "./components/Lobby";
+import styles from "./Home.module.css"; 
 
 export default function Home() {
   const { socket, isConnected } = useSocket();
