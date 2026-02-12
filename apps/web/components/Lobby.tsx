@@ -1,3 +1,5 @@
+"use client";
+
 import { GameState, Player, TEAMS, ROLES } from "@operative/shared";
 import { useSocket } from "../context/SocketContext";
 import styles from "./Lobby.module.css";
