@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CARD_TYPES } from "@operative/shared";
 import styles from "./GameCard.module.css";
 
