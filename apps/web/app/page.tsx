@@ -105,9 +105,8 @@ export default function Home() {
     );
   }
 
-  // Use a generic wrapper for the game views to avoid Home.module.css conflicts
   return (
-    <main style={{ minHeight: '100vh', width: '100%' }}>
+    <main style={{ minHeight: '100vh', width: '100%', background: 'var(--bg-app)' }}>
       {gameState?.phase === "lobby" ? (
         <Lobby gameState={gameState} currentPlayerId={socket?.id} />
       ) : (
