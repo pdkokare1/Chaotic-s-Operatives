@@ -1,3 +1,4 @@
+// apps/server/src/index.ts
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -47,11 +48,17 @@ io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
 
   // --- Create Game ---
-  socket.on("create_game", async (hostName: string) => {
+  socket.on("create_game", async (payload: any) => {
+    // Backward compatibility for old clients before refresh
+    const hostName = typeof payload === "string" ? payload : payload.hostName;
+    const deviceId = typeof payload === "string" ? undefined : payload.deviceId;
+
     const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
     let gameState = generateGame(roomCode);
     const name = hostName || "Host";
-    gameState = addPlayer(gameState, socket.id, name);
+    
+    // Pass deviceId to state
+    gameState = addPlayer(gameState, socket.id, name, deviceId);
     
     socketToRoom.set(socket.id, roomCode);
     socket.join(roomCode);
@@ -61,19 +68,32 @@ io.on("connection", (socket) => {
   });
 
   // --- Join Game ---
-  socket.on("join_game", async ({ roomCode, playerName }) => {
+  socket.on("join_game", async ({ roomCode, playerName, deviceId }) => {
     const code = roomCode.trim().toUpperCase();
     let gameState = await getGame(code);
 
     if (gameState) {
       const name = playerName || `Agent ${socket.id.substring(0, 3)}`;
-      gameState = addPlayer(gameState, socket.id, name);
       
+      // --- RECONNECTION LOGIC ---
+      const existingPlayer = gameState.players.find((p: any) => p.deviceId && p.deviceId === deviceId);
+      
+      if (existingPlayer) {
+        // Player refreshed! Update their socket ID instead of creating a new player.
+        gameState.players = gameState.players.map((p: any) => 
+          p.deviceId === deviceId ? { ...p, id: socket.id, name } : p
+        );
+        console.log(`♻️ ${name} reconnected to ${code}`);
+      } else {
+        // Brand new player
+        gameState = addPlayer(gameState, socket.id, name, deviceId);
+        console.log(`✅ ${name} joined ${code}`);
+      }
+
       socketToRoom.set(socket.id, code);
       socket.join(code);
       
       await saveAndBroadcast(code, gameState);
-      console.log(`${name} joined ${code}`);
     } else {
       socket.emit("error", "Room not found");
     }
@@ -163,10 +183,10 @@ io.on("connection", (socket) => {
     if (code) {
       let gameState = await getGame(code);
       if (gameState) {
-        gameState = removePlayer(gameState, socket.id);
+        // PHASE 1 CHANGE: We no longer strictly remove players on disconnect so they can reconnect.
+        // I am commenting this out rather than deleting it as per your strict instructions.
+        // gameState = removePlayer(gameState, socket.id);
         
-        // If empty, we can choose to delete OR keep it. 
-        // Let's keep it in DB for a bit so they can reconnect if they refresh.
         // If completely empty, maybe delete to clean up?
         if (gameState.players.length === 0) {
           await GameModel.deleteOne({ roomCode: code });
