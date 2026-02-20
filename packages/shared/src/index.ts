@@ -1,3 +1,4 @@
+// packages/shared/src/index.ts
 import { z } from "zod";
 
 // --- Game Constants ---
@@ -28,6 +29,7 @@ export interface Player {
   name: string;
   team: Team;
   role: Role;
+  deviceId?: string; // New: Tracks the player's browser for reconnection
 }
 
 export interface Card {
