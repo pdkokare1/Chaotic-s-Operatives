@@ -1,3 +1,4 @@
+// apps/server/src/gameLogic.ts
 import { GameState, Card, TEAMS, CARD_TYPES, Player, Team, ROLES } from "@operative/shared";
 import { WORD_LIST } from "./words";
 
@@ -34,7 +35,8 @@ export function generateGame(roomCode: string): GameState {
 }
 
 // --- Player Management ---
-export function addPlayer(gameState: GameState, id: string, name: string): GameState {
+// Added deviceId parameter for reconnection tracking
+export function addPlayer(gameState: GameState, id: string, name: string, deviceId?: string): GameState {
   const redCount = gameState.players.filter(p => p.team === TEAMS.RED).length;
   const blueCount = gameState.players.filter(p => p.team === TEAMS.BLUE).length;
   const team = redCount <= blueCount ? TEAMS.RED : TEAMS.BLUE;
@@ -43,7 +45,8 @@ export function addPlayer(gameState: GameState, id: string, name: string): GameS
     id,
     name,
     team,
-    role: ROLES.OPERATIVE
+    role: ROLES.OPERATIVE,
+    deviceId // Now included in state
   };
 
   return { ...gameState, players: [...gameState.players, newPlayer] };
