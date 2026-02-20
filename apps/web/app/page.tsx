@@ -30,6 +30,17 @@ export default function Home() {
   const [playerName, setPlayerName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [view, setView] = useState<"welcome" | "game">("welcome");
+  const [deviceId, setDeviceId] = useState("");
+
+  useEffect(() => {
+    // Reconnection Logic: Get or create a permanent Device ID for this browser
+    let storedId = localStorage.getItem("operative_device_id");
+    if (!storedId) {
+      storedId = "dev_" + Math.random().toString(36).substring(2) + Date.now().toString(36);
+      localStorage.setItem("operative_device_id", storedId);
+    }
+    setDeviceId(storedId);
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -54,13 +65,15 @@ export default function Home() {
   const handleCreateGame = () => {
     if (!socket || !playerName) return alert("Please enter your name");
     setLoading(true);
-    socket.emit("create_game", playerName);
+    // Updated to send deviceId object
+    socket.emit("create_game", { hostName: playerName, deviceId });
   };
 
   const handleJoinGame = () => {
     if (!socket || !joinCode || !playerName) return alert("Please enter name and code");
     setLoading(true);
-    socket.emit("join_game", { roomCode: joinCode, playerName });
+    // Updated to send deviceId
+    socket.emit("join_game", { roomCode: joinCode, playerName, deviceId });
   }
 
   if (!isConnected) {
