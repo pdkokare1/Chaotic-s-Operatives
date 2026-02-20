@@ -1,26 +1,26 @@
-{
-type: file_change
-fileName: apps/web/app/page.tsx
-fullContent:
+// apps/web/app/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+// import dynamic from "next/dynamic";
 import { useSocket } from "../context/SocketContext";
 import { GameState } from "@operative/shared";
 import styles from "./Home.module.css"; 
 
 // --- Dynamic Imports (Client Side Only) ---
 // This forces the CSS to load on the client, fixing the styling issue on Vercel/Production
-const Lobby = dynamic(() => import("./components/Lobby"), { 
-  ssr: false,
-  loading: () => <div className="animate-pulse" style={{padding: '2rem', color: '#a3a3a3'}}>LOADING HQ...</div>
-});
+// const Lobby = dynamic(() => import("./components/Lobby"), { 
+//   ssr: false,
+//   loading: () => <div className="animate-pulse" style={{padding: '2rem', color: '#a3a3a3'}}>LOADING HQ...</div>
+// });
 
-const GameBoard = dynamic(() => import("./components/GameBoard"), { 
-  ssr: false,
-  loading: () => <div className="animate-pulse" style={{padding: '2rem', color: '#a3a3a3'}}>LOADING MISSION...</div>
-});
+// const GameBoard = dynamic(() => import("./components/GameBoard"), { 
+//   ssr: false,
+//   loading: () => <div className="animate-pulse" style={{padding: '2rem', color: '#a3a3a3'}}>LOADING MISSION...</div>
+// });
+
+import Lobby from "./components/Lobby";
+import GameBoard from "./components/GameBoard";
 
 export default function Home() {
   const { socket, isConnected } = useSocket();
@@ -129,6 +129,4 @@ export default function Home() {
       )}
     </main>
   );
-}
-
 }
