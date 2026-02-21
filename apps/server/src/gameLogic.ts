@@ -1,6 +1,6 @@
 // apps/server/src/gameLogic.ts
 import { GameState, Card, TEAMS, CARD_TYPES, Player, Team, ROLES } from "@operative/shared";
-import { WORD_LIST } from "./words";
+import { WORD_LIST, CATEGORIZED_WORDS } from "./words";
 
 export function generateGame(roomCode: string): GameState {
   const shuffledWords = [...WORD_LIST]
@@ -30,12 +30,12 @@ export function generateGame(roomCode: string): GameState {
     scores: { red: 9, blue: 8 },
     winner: null,
     logs: ["Waiting for players..."],
-    currentClue: null // Start with no clue
+    currentClue: null,
+    timerDuration: 0 // Default to off
   };
 }
 
 // --- Player Management ---
-// Added deviceId parameter for reconnection tracking
 export function addPlayer(gameState: GameState, id: string, name: string, deviceId?: string): GameState {
   const redCount = gameState.players.filter(p => p.team === TEAMS.RED).length;
   const blueCount = gameState.players.filter(p => p.team === TEAMS.BLUE).length;
@@ -46,7 +46,7 @@ export function addPlayer(gameState: GameState, id: string, name: string, device
     name,
     team,
     role: ROLES.OPERATIVE,
-    deviceId // Now included in state
+    deviceId 
   };
 
   return { ...gameState, players: [...gameState.players, newPlayer] };
@@ -60,11 +60,36 @@ export function updatePlayer(gameState: GameState, id: string, updates: Partial<
   return { ...gameState, players: gameState.players.map(p => p.id === id ? { ...p, ...updates } : p) };
 }
 
-export function startGame(gameState: GameState): GameState {
+// NEW: Accepts category and timer options
+export function startGame(gameState: GameState, options?: { category: string, timer: number }): GameState {
   if (gameState.phase !== "lobby") return gameState;
+
+  let newBoard = gameState.board;
+  let selectedTimer = 0;
+
+  // Apply new settings if provided
+  if (options) {
+    selectedTimer = options.timer;
+    
+    // Regenerate board words with selected category
+    if (options.category && CATEGORIZED_WORDS[options.category]) {
+      let pool = CATEGORIZED_WORDS[options.category];
+      // Fallback to standard mix if a category is somehow too small for the board
+      if (pool.length < 25) pool = WORD_LIST; 
+      
+      const shuffledWords = [...pool].sort(() => 0.5 - Math.random()).slice(0, 25);
+      newBoard = gameState.board.map((card, index) => ({
+        ...card,
+        word: shuffledWords[index] || "BLANK"
+      }));
+    }
+  }
+
   return {
     ...gameState,
     phase: "playing",
+    board: newBoard,
+    timerDuration: selectedTimer,
     logs: [...gameState.logs, "Mission Started. Red Team, awaiting orders."]
   };
 }
@@ -89,7 +114,7 @@ export function endTurn(gameState: GameState): GameState {
   return {
     ...gameState,
     turn: opponent,
-    currentClue: null, // Clear clue on turn switch
+    currentClue: null, 
     logs: [...gameState.logs, `${gameState.turn.toUpperCase()} ended their turn.`]
   };
 }
@@ -118,7 +143,7 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   } 
   else if (card.type === CARD_TYPES.NEUTRAL) {
     newState.turn = opponentTeam;
-    newState.currentClue = null; // Clear clue
+    newState.currentClue = null; 
     newState.logs.push(`${currentTeam.toUpperCase()} hit a civilian. Turn over.`);
   } 
   else if (card.type === currentTeam) {
@@ -134,7 +159,7 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   else {
     newState.scores[opponentTeam] -= 1;
     newState.turn = opponentTeam;
-    newState.currentClue = null; // Clear clue
+    newState.currentClue = null; 
     newState.logs.push(`${currentTeam.toUpperCase()} found an Enemy Spy! Turn over.`);
 
     if (newState.scores[opponentTeam] === 0) {
