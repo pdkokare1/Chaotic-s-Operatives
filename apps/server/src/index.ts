@@ -23,18 +23,16 @@ const io = new Server(httpServer, {
   cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// Track which socket is in which room (still needed in memory for fast lookups)
+// Track which socket is in which room
 const socketToRoom = new Map<string, string>(); 
 
 // Helper: Save game to DB and broadcast
 const saveAndBroadcast = async (roomCode: string, gameState: any) => {
-  // Update DB
   await GameModel.findOneAndUpdate(
     { roomCode }, 
     { state: gameState, lastUpdated: new Date() },
     { upsert: true }
   );
-  // Broadcast to players
   io.to(roomCode).emit("game_updated", gameState);
 };
 
@@ -48,17 +46,13 @@ io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
 
   // --- Auto Reconnect ---
-  // Searches DB to see if this user is already in a game
   socket.on("reconnect_user", async (deviceId) => {
     if (!deviceId) return;
-    
-    // Find if this device is currently in any active game by searching inside the players array
     const gameDoc = await GameModel.findOne({ "state.players.deviceId": deviceId });
     if (gameDoc) {
       let gameState = gameDoc.state;
       const roomCode = gameState.roomCode;
       
-      // Update the player's socket ID to the new one so they can receive updates
       gameState.players = gameState.players.map((p: any) => 
         p.deviceId === deviceId ? { ...p, id: socket.id } : p
       );
@@ -71,15 +65,13 @@ io.on("connection", (socket) => {
     }
   });
 
-  // --- Leave Game (Intentional Disconnect) ---
+  // --- Leave Game ---
   socket.on("leave_game", async () => {
     const code = socketToRoom.get(socket.id);
     if (code) {
       let gameState = await getGame(code);
       if (gameState) {
-        // Actively remove the player from the database to sever the deviceId connection
         gameState = removePlayer(gameState, socket.id);
-        
         if (gameState.players.length === 0) {
           await GameModel.deleteOne({ roomCode: code });
         } else {
@@ -94,7 +86,6 @@ io.on("connection", (socket) => {
 
   // --- Create Game ---
   socket.on("create_game", async (payload: any) => {
-    // Backward compatibility for old clients before refresh
     const hostName = typeof payload === "string" ? payload : payload.hostName;
     const deviceId = typeof payload === "string" ? undefined : payload.deviceId;
 
@@ -102,9 +93,7 @@ io.on("connection", (socket) => {
     let gameState = generateGame(roomCode);
     const name = hostName || "Host";
     
-    // Pass deviceId to state
     gameState = addPlayer(gameState, socket.id, name, deviceId);
-    
     socketToRoom.set(socket.id, roomCode);
     socket.join(roomCode);
     
@@ -119,18 +108,14 @@ io.on("connection", (socket) => {
 
     if (gameState) {
       const name = playerName || `Agent ${socket.id.substring(0, 3)}`;
-      
-      // --- RECONNECTION LOGIC ---
       const existingPlayer = gameState.players.find((p: any) => p.deviceId && p.deviceId === deviceId);
       
       if (existingPlayer) {
-        // Player refreshed! Update their socket ID instead of creating a new player.
         gameState.players = gameState.players.map((p: any) => 
           p.deviceId === deviceId ? { ...p, id: socket.id, name } : p
         );
         console.log(`♻️ ${name} reconnected to ${code}`);
       } else {
-        // Brand new player
         gameState = addPlayer(gameState, socket.id, name, deviceId);
         console.log(`✅ ${name} joined ${code}`);
       }
@@ -167,12 +152,13 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("start_game", async () => {
+  // NEW: Accept options payload
+  socket.on("start_game", async (options: { category: string, timer: number }) => {
     const code = socketToRoom.get(socket.id);
     if (code) {
       let gameState = await getGame(code);
       if (gameState) {
-        gameState = startGame(gameState);
+        gameState = startGame(gameState, options);
         await saveAndBroadcast(code, gameState);
       }
     }
@@ -204,8 +190,12 @@ io.on("connection", (socket) => {
     if (code) {
       let gameState = await getGame(code);
       if (gameState) {
-        gameState = endTurn(gameState);
-        await saveAndBroadcast(code, gameState);
+        // NEW: Security check to prevent double skips from multiple local timers ending
+        const caller = gameState.players.find(p => p.id === socket.id);
+        if (caller && caller.team === gameState.turn) {
+          gameState = endTurn(gameState);
+          await saveAndBroadcast(code, gameState);
+        }
       }
     }
   });
@@ -228,11 +218,8 @@ io.on("connection", (socket) => {
     if (code) {
       let gameState = await getGame(code);
       if (gameState) {
-        // PHASE 1 CHANGE: We no longer strictly remove players on disconnect so they can reconnect.
-        // I am commenting this out rather than deleting it as per your strict instructions.
+        // Commented out per user preference:
         // gameState = removePlayer(gameState, socket.id);
-        
-        // If completely empty, maybe delete to clean up?
         if (gameState.players.length === 0) {
           await GameModel.deleteOne({ roomCode: code });
         } else {
