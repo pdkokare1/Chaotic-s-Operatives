@@ -42,13 +42,20 @@ export default function Home() {
     setDeviceId(storedId);
   }, []);
 
+  // NEW: Automatic Check-In
+  useEffect(() => {
+    if (!socket || !deviceId) return;
+    // As soon as we have a socket and a device ID, ask the server if we are in a game
+    socket.emit("reconnect_user", deviceId);
+  }, [socket, deviceId]);
+
   useEffect(() => {
     if (!socket) return;
 
     socket.on("game_updated", (newGame: GameState) => {
       setGameState(newGame);
       setLoading(false);
-      setView("game");
+      setView("game"); // This automatically skips the welcome screen if the server sends a game
     });
 
     socket.on("error", (msg: string) => {
