@@ -165,3 +165,50 @@
 
 .roleBtnActive { background: #404040; color: white; }
 .spyActive { background: #404040; color: var(--yellow-accent); }
+
+/* --- NEW: Custom Dropdown Styling --- */
+.spyDropdown {
+  appearance: none;
+  background-color: var(--bg-card);
+  color: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+}
+
+.spyDropdown:focus {
+  border-color: var(--text-muted);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.roleDropdown {
+  appearance: none;
+  background-color: black;
+  color: var(--text-muted);
+  border: 1px solid #404040;
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 4px 20px 4px 6px; 
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  background-size: 12px;
+}
+
+.roleDropdown:focus {
+  color: white;
+  border-color: white;
+}
