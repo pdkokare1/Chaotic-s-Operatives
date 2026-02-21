@@ -47,6 +47,30 @@ const getGame = async (roomCode: string) => {
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
 
+  // --- Auto Reconnect ---
+  // NEW: Searches DB to see if this user is already in a game
+  socket.on("reconnect_user", async (deviceId) => {
+    if (!deviceId) return;
+    
+    // Find if this device is currently in any active game by searching inside the players array
+    const gameDoc = await GameModel.findOne({ "state.players.deviceId": deviceId });
+    if (gameDoc) {
+      let gameState = gameDoc.state;
+      const roomCode = gameState.roomCode;
+      
+      // Update the player's socket ID to the new one so they can receive updates
+      gameState.players = gameState.players.map((p: any) => 
+        p.deviceId === deviceId ? { ...p, id: socket.id } : p
+      );
+
+      socketToRoom.set(socket.id, roomCode);
+      socket.join(roomCode);
+      
+      await saveAndBroadcast(roomCode, gameState);
+      console.log(`⚡ Auto-reconnected device ${deviceId} to ${roomCode}`);
+    }
+  });
+
   // --- Create Game ---
   socket.on("create_game", async (payload: any) => {
     // Backward compatibility for old clients before refresh
