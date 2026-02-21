@@ -166,7 +166,6 @@
 .roleBtnActive { background: #404040; color: white; }
 .spyActive { background: #404040; color: var(--yellow-accent); }
 
-/* --- NEW: Custom Dropdown Styling --- */
 .spyDropdown {
   appearance: none;
   background-color: var(--bg-card);
