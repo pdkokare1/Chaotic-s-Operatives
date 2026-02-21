@@ -258,6 +258,35 @@ io.on("connection", (socket) => {
   });
 });
 
+// --- NEW: Server-Driven Time Loop ---
+// Polls active games every 1 second. If time has expired, forces the turn over.
+setInterval(async () => {
+  try {
+    const now = Date.now();
+    const expiredGames = await GameModel.find({
+      "state.phase": "playing",
+      "state.turnEndsAt": { $lte: now, $ne: null }
+    });
+
+    for (const doc of expiredGames) {
+      const code = doc.roomCode;
+      await withLock(code, async () => {
+        let gameState = await getGame(code);
+        
+        // Final sanity check to ensure state hasn't shifted since querying
+        if (gameState && gameState.phase === "playing" && gameState.turnEndsAt && gameState.turnEndsAt <= Date.now()) {
+          gameState = endTurn(gameState);
+          // Add custom server-enforced flavor text over the default 'ended turn' log
+          gameState.logs[gameState.logs.length - 1] = "SYSTEM OVERRIDE: TIME EXPIRED. Turn forcibly switched.";
+          await saveAndBroadcast(code, gameState);
+        }
+      });
+    }
+  } catch (e) {
+    console.error("Timer Loop Error:", e);
+  }
+}, 1000);
+
 httpServer.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
