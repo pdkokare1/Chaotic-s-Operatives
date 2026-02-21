@@ -1,7 +1,7 @@
 // apps/web/app/components/GameBoard.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameState, ROLES } from "@operative/shared";
 import GameCard from "./GameCard";
 import { useSocket } from "../../context/SocketContext";
@@ -17,12 +17,33 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const [clueNum, setClueNum] = useState("1");
   const [copied, setCopied] = useState(false);
 
+  // NEW: Timer State
+  const [timeLeft, setTimeLeft] = useState(gameState.timerDuration);
+
   const myPlayer = gameState.players.find(p => p.id === socket?.id);
   const isMyTurn = gameState.turn === myPlayer?.team;
   const isSpymaster = myPlayer?.role === ROLES.SPYMASTER;
   const isHost = gameState.players[0]?.id === myPlayer?.id;
   const [viewAsSpymaster, setViewAsSpymaster] = useState(false);
   const showSpymasterView = isSpymaster || viewAsSpymaster;
+
+  // NEW: Reset Timer when turn changes or a clue is given
+  useEffect(() => {
+    setTimeLeft(gameState.timerDuration);
+  }, [gameState.turn, gameState.currentClue, gameState.timerDuration]);
+
+  // NEW: Countdown Loop
+  useEffect(() => {
+    if (gameState.timerDuration === 0 || gameState.phase !== "playing") return;
+    
+    if (timeLeft <= 0) {
+      if (isMyTurn) socket?.emit("end_turn");
+      return;
+    }
+
+    const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [timeLeft, gameState.timerDuration, gameState.phase, isMyTurn, socket]);
 
   const handleCardClick = (cardId: string) => {
     if (!socket || isSpymaster || !isMyTurn || !gameState.currentClue) return;
@@ -45,12 +66,18 @@ export default function GameBoard({ gameState }: GameBoardProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // NEW: Leave Mission logic
   const leaveMission = () => {
     if (confirm("Are you sure you want to abort the mission?")) {
       if (socket) socket.emit("leave_game");
       window.location.reload();
     }
+  };
+
+  // Helper to format timer visually
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   return (
@@ -132,6 +159,13 @@ export default function GameBoard({ gameState }: GameBoardProps) {
         <button onClick={copyCode} className={styles.roomCodeDisplay}>
           <div style={{fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: 4}}>{copied ? "COPIED!" : "SECURE CHANNEL"}</div>
           <div className={styles.roomCodeBox}>{gameState.roomCode}</div>
+          
+          {/* NEW: Visual Timer display attached neatly under the room code */}
+          {gameState.timerDuration > 0 && gameState.phase === "playing" && (
+            <div style={{ fontSize: '0.8rem', marginTop: 4, color: timeLeft <= 10 ? 'var(--red-primary)' : 'var(--text-muted)', fontWeight: timeLeft <= 10 ? 'bold' : 'normal' }}>
+              TIME: {formatTime(timeLeft)}
+            </div>
+          )}
         </button>
         
         <div className={`${styles.scoreBlue} ${gameState.turn === 'blue' ? styles.scoreActive : styles.scoreInactive}`}>
@@ -171,7 +205,6 @@ export default function GameBoard({ gameState }: GameBoardProps) {
                RESET
              </button>
            )}
-           {/* NEW: Leave Mission Button appended here */}
            <button onClick={leaveMission} className={styles.controlBtn}>
              ABORT
            </button>
