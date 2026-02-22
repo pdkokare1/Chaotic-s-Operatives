@@ -29,7 +29,8 @@ export interface Player {
   name: string;
   team: Team;
   role: Role;
-  deviceId?: string; // Tracks the player's browser for reconnection
+  deviceId?: string; 
+  currentTarget?: string | null; // NEW: Synchronized Targeting
 }
 
 export interface Card {
@@ -54,9 +55,9 @@ export interface GameState {
   scores: { red: number; blue: number };
   winner: Team | null;
   logs: string[];
-  currentClue: Clue | null; // Tracks the active clue
-  timerDuration: number; // 0 means off, otherwise represents seconds per turn
-  turnEndsAt: number | null; // NEW: Absolute timestamp for Server-Driven Time
+  currentClue: Clue | null;
+  timerDuration: number;
+  turnEndsAt: number | null; 
 }
 
 // --- Validation Schemas ---
