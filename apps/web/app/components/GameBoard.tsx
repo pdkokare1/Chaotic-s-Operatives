@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { GameState, ROLES } from "@operative/shared";
 import GameCard from "./GameCard";
 import DecipherText from "./DecipherText"; 
-import TypewriterText from "./TypewriterText"; // NEW: Intel Feed
+import TypewriterText from "./TypewriterText"; 
 import { useSocket } from "../../context/SocketContext";
 import styles from "./GameBoard.module.css";
 
@@ -22,6 +22,11 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const [timeLeft, setTimeLeft] = useState(gameState.timerDuration);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
+  // UX 3: Spymaster Confirm Setup
+  const [pendingClue, setPendingClue] = useState<{ word: string, number: number } | null>(null);
+  // Graphic 3: CRT Toggle
+  const [crtEnabled, setCrtEnabled] = useState(true);
+
   const myPlayer = gameState.players.find(p => p.id === socket?.id);
   const isMyTurn = gameState.turn === myPlayer?.team;
   const isSpymaster = myPlayer?.role === ROLES.SPYMASTER;
@@ -29,9 +34,9 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const [viewAsSpymaster, setViewAsSpymaster] = useState(false);
   const showSpymasterView = isSpymaster || viewAsSpymaster;
 
-  // Clear active selections and targets if the turn changes
   useEffect(() => {
     setSelectedCardId(null); 
+    setPendingClue(null); // Clear pending clue if turn changes
     if (socket && myPlayer) {
       socket.emit("set_target", { roomCode: gameState.roomCode, cardId: null });
     }
@@ -58,21 +63,31 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const handleCardClick = (cardId: string) => {
     if (!socket || isSpymaster || !isMyTurn || !gameState.currentClue) return;
     
-    // Safe Tap Logic + Synchronized Targeting
     if (selectedCardId === cardId) {
       socket.emit("reveal_card", { roomCode: gameState.roomCode, cardId });
       setSelectedCardId(null); 
     } else {
       setSelectedCardId(cardId); 
-      socket.emit("set_target", { roomCode: gameState.roomCode, cardId }); // NEW
+      socket.emit("set_target", { roomCode: gameState.roomCode, cardId }); 
     }
   };
 
   const submitClue = (e: React.FormEvent) => {
     e.preventDefault();
     if (!socket || !clueWord) return;
-    socket.emit("give_clue", { word: clueWord, number: parseInt(clueNum) });
+    // UX 3: Ask for confirmation instead of immediate emit
+    setPendingClue({ word: clueWord.toUpperCase().trim(), number: parseInt(clueNum) });
+  };
+
+  const confirmClue = () => {
+    if (!socket || !pendingClue) return;
+    socket.emit("give_clue", { word: pendingClue.word, number: pendingClue.number });
     setClueWord("");
+    setPendingClue(null);
+  };
+
+  const cancelClue = () => {
+    setPendingClue(null);
   };
 
   const endTurn = () => { if (socket) socket.emit("end_turn"); };
@@ -97,7 +112,6 @@ export default function GameBoard({ gameState }: GameBoardProps) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // NEW: Teletype Text Wrapping for the freshest log
   const renderLogEntry = (log: string, isNewest: boolean) => {
     const LogText = ({ text, color }: { text: string, color?: string }) => (
       <span style={{ color }}>{isNewest ? <TypewriterText text={text} speed={25} /> : text}</span>
@@ -112,11 +126,16 @@ export default function GameBoard({ gameState }: GameBoardProps) {
     return <><span className={styles.tagSystem}>INFO</span> <LogText text={log} /></>;
   };
 
-  const containerClass = `${styles.container} ${gameState.phase === 'playing' ? (gameState.turn === 'red' ? styles.glowRed : styles.glowBlue) : ''}`;
+  // UI 1: Generate Clue History
+  const clueHistory = gameState.logs.filter(log => log.includes("Spymaster:"));
+  
+  // Graphic 2: Trigger Glitch if Assassin was hit
+  const isFatalError = gameState.logs.some(log => log.includes("FATAL ERROR"));
+  const containerClass = `${styles.container} ${gameState.phase === 'playing' ? (gameState.turn === 'red' ? styles.glowRed : styles.glowBlue) : ''} ${isFatalError ? styles.fatalGlitchContainer : ''}`;
 
   return (
     <>
-      <div className="crt-overlay" /> 
+      {crtEnabled && <div className="crt-overlay" />} 
       <div className={containerClass}>
         
         {gameState.phase === "game_over" && (
@@ -140,24 +159,34 @@ export default function GameBoard({ gameState }: GameBoardProps) {
         <div className={styles.actionBar}>
           {gameState.phase === "playing" && isMyTurn && isSpymaster && !gameState.currentClue && (
             <form onSubmit={submitClue} className={styles.clueForm}>
-              <input 
-                type="text" 
-                placeholder="CLUE WORD" 
-                value={clueWord}
-                onChange={e => setClueWord(e.target.value.toUpperCase().trim())}
-                className={styles.clueInput}
-                autoFocus
-              />
-              <select 
-                value={clueNum}
-                onChange={e => setClueNum(e.target.value)}
-                className={styles.clueSelect}
-              >
-                {[1,2,3,4,5,6,7,8,9].map(n => <option key={n} value={n}>{n}</option>)}
-                <option value="0">0</option>
-                <option value="99">∞</option>
-              </select>
-              <button type="submit" className={styles.sendBtn}>SEND</button>
+              {pendingClue ? (
+                <div className={styles.confirmPanel}>
+                  <div className={styles.pendingDisplay}>CONFIRM: {pendingClue.word} / {pendingClue.number}</div>
+                  <button type="button" onClick={confirmClue} className={styles.confirmBtn}>CONFIRM</button>
+                  <button type="button" onClick={cancelClue} className={styles.cancelBtn}>CANCEL</button>
+                </div>
+              ) : (
+                <>
+                  <input 
+                    type="text" 
+                    placeholder="CLUE WORD" 
+                    value={clueWord}
+                    onChange={e => setClueWord(e.target.value.toUpperCase().trim())}
+                    className={styles.clueInput}
+                    autoFocus
+                  />
+                  <select 
+                    value={clueNum}
+                    onChange={e => setClueNum(e.target.value)}
+                    className={styles.clueSelect}
+                  >
+                    {[1,2,3,4,5,6,7,8,9].map(n => <option key={n} value={n}>{n}</option>)}
+                    <option value="0">0</option>
+                    <option value="99">∞</option>
+                  </select>
+                  <button type="submit" className={styles.sendBtn}>SEND</button>
+                </>
+              )}
             </form>
           )}
 
@@ -183,7 +212,6 @@ export default function GameBoard({ gameState }: GameBoardProps) {
         {/* --- SCOREBOARD --- */}
         <div className={styles.scoreboard}>
           <div className={`${styles.progressContainer} ${gameState.turn === 'red' ? styles.scoreActive : styles.scoreInactive}`}>
-            {/* NEW: Explicitly kept numbers alongside the progress bars as requested */}
             <div className={styles.scoreRed}>RED: {gameState.scores.red}</div>
             <div className={styles.progressBar}>
               {Array.from({ length: 9 }).map((_, i) => (
@@ -197,14 +225,13 @@ export default function GameBoard({ gameState }: GameBoardProps) {
             <div className={styles.roomCodeBox}>{gameState.roomCode}</div>
             
             {gameState.timerDuration > 0 && gameState.phase === "playing" && (
-              <div style={{ fontSize: '0.8rem', marginTop: 4, color: timeLeft <= 10 ? 'var(--red-primary)' : 'var(--text-muted)', fontWeight: timeLeft <= 10 ? 'bold' : 'normal' }}>
+              <div style={{ fontSize: '0.8rem', marginTop: 4, color: 'var(--text-muted)', fontWeight: 'normal' }}>
                 TIME: {formatTime(timeLeft)}
               </div>
             )}
           </button>
           
           <div className={`${styles.progressContainer} ${gameState.turn === 'blue' ? styles.scoreActive : styles.scoreInactive}`}>
-            {/* NEW: Explicitly kept numbers alongside the progress bars as requested */}
             <div className={styles.scoreBlue}>BLUE: {gameState.scores.blue}</div>
             <div className={styles.progressBar}>
               {Array.from({ length: 8 }).map((_, i) => (
@@ -217,7 +244,6 @@ export default function GameBoard({ gameState }: GameBoardProps) {
         {/* --- GRID --- */}
         <div className={styles.grid}>
           {gameState.board.map((card) => {
-            // NEW: Gather teammate names who are targeting this card
             const targetingTeammates = gameState.players
               .filter(p => p.currentTarget === card.id && p.id !== socket?.id && p.team === myPlayer?.team)
               .map(p => p.name);
@@ -230,20 +256,37 @@ export default function GameBoard({ gameState }: GameBoardProps) {
                 disabled={gameState.phase === "game_over" || (isMyTurn && !isSpymaster && !gameState.currentClue)}
                 isSpymaster={showSpymasterView}
                 isSelected={selectedCardId === card.id} 
-                targetingPlayers={targetingTeammates} // Passed to card
+                targetingPlayers={targetingTeammates}
               />
             )
           })}
         </div>
 
         <div className={styles.footer}>
-          <div className={styles.logs}>
-            {gameState.logs.slice().reverse().map((log, i) => (
-              <div key={i} className={styles.logEntry}>
-                 {/* isNewest = true ONLY for the first (top) log so only one typewriter runs at a time */}
-                 {renderLogEntry(log, i === 0)} 
+          <div className={styles.footerLayout}>
+            {/* UI 1: Split logs into Action Log & Clue History */}
+            <div className={styles.logPanel}>
+              <div className={styles.panelHeader}>ACTION LOG</div>
+              <div className={styles.logs}>
+                {gameState.logs.slice().reverse().map((log, i) => (
+                  <div key={i} className={styles.logEntry}>
+                     {renderLogEntry(log, i === 0)} 
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div className={styles.clueHistoryPanel}>
+              <div className={styles.panelHeader}>CLUE HISTORY</div>
+              <div className={styles.logs}>
+                {clueHistory.slice().reverse().map((log, i) => (
+                  <div key={i} className={styles.logEntry}>
+                     {renderLogEntry(log, false)} 
+                  </div>
+                ))}
+                {clueHistory.length === 0 && <div style={{opacity: 0.5, fontStyle: 'italic', fontSize: '0.8rem'}}>No clues transmitted.</div>}
+              </div>
+            </div>
           </div>
 
           <div className={styles.controls}>
@@ -257,6 +300,9 @@ export default function GameBoard({ gameState }: GameBoardProps) {
                  RESET
                </button>
              )}
+             <button onClick={() => setCrtEnabled(!crtEnabled)} className={styles.controlBtn}>
+               CRT: {crtEnabled ? "ON" : "OFF"}
+             </button>
              <button onClick={leaveMission} className={styles.controlBtn}>
                ABORT
              </button>
