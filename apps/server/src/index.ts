@@ -25,7 +25,6 @@ const io = new Server(httpServer, {
 
 const socketToRoom = new Map<string, string>(); 
 
-// NEW: Queue system to prevent MongoDB race conditions when events happen rapidly
 const roomLocks = new Map<string, Promise<void>>();
 const withLock = async (code: string, fn: () => Promise<void>) => {
   const currentLock = roomLocks.get(code) || Promise.resolve();
@@ -183,11 +182,28 @@ io.on("connection", (socket) => {
   });
 
   // --- Game Actions ---
+  
+  // NEW: Synchronized Targeting
+  socket.on("set_target", ({ roomCode, cardId }) => {
+    const code = roomCode.trim().toUpperCase();
+    withLock(code, async () => {
+      let gameState = await getGame(code);
+      if (gameState) {
+        gameState.players = gameState.players.map((p: any) => 
+          p.id === socket.id ? { ...p, currentTarget: cardId } : p
+        );
+        await saveAndBroadcast(code, gameState);
+      }
+    });
+  });
+
   socket.on("reveal_card", ({ roomCode, cardId }) => {
     const code = roomCode.trim().toUpperCase();
     withLock(code, async () => {
       let gameState = await getGame(code);
       if (gameState) {
+        // Clear targets for the team before making the move
+        gameState.players = gameState.players.map((p: any) => ({ ...p, currentTarget: null }));
         gameState = makeMove(gameState, cardId);
         await saveAndBroadcast(code, gameState);
       }
@@ -215,6 +231,7 @@ io.on("connection", (socket) => {
         if (gameState) {
           const caller = gameState.players.find((p: any) => p.id === socket.id);
           if (caller && caller.team === gameState.turn) {
+            gameState.players = gameState.players.map((p: any) => ({ ...p, currentTarget: null }));
             gameState = endTurn(gameState);
             await saveAndBroadcast(code, gameState);
           }
@@ -229,7 +246,7 @@ io.on("connection", (socket) => {
       let oldState = await getGame(code);
       if (oldState) {
         let newState = generateGame(code);
-        newState.players = oldState.players;
+        newState.players = oldState.players.map((p: any) => ({ ...p, currentTarget: null }));
         newState.phase = "lobby"; 
         newState.logs = ["Mission Reset. Prepare for deployment."];
         await saveAndBroadcast(code, newState);
@@ -244,11 +261,11 @@ io.on("connection", (socket) => {
       withLock(code, async () => {
         let gameState = await getGame(code);
         if (gameState) {
-          // Commented out to preserve Phase 1 reconnect functionality
-          // gameState = removePlayer(gameState, socket.id);
           if (gameState.players.length === 0) {
             await GameModel.deleteOne({ roomCode: code });
           } else {
+            // Un-target in case they drop mid-click
+            gameState.players = gameState.players.map((p: any) => p.id === socket.id ? { ...p, currentTarget: null } : p);
             await saveAndBroadcast(code, gameState);
           }
         }
@@ -258,8 +275,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// --- NEW: Server-Driven Time Loop ---
-// Polls active games every 1 second. If time has expired, forces the turn over.
+// Server-Driven Time Loop
 setInterval(async () => {
   try {
     const now = Date.now();
@@ -272,11 +288,9 @@ setInterval(async () => {
       const code = doc.roomCode;
       await withLock(code, async () => {
         let gameState = await getGame(code);
-        
-        // Final sanity check to ensure state hasn't shifted since querying
         if (gameState && gameState.phase === "playing" && gameState.turnEndsAt && gameState.turnEndsAt <= Date.now()) {
+          gameState.players = gameState.players.map((p: any) => ({ ...p, currentTarget: null }));
           gameState = endTurn(gameState);
-          // Add custom server-enforced flavor text over the default 'ended turn' log
           gameState.logs[gameState.logs.length - 1] = "SYSTEM OVERRIDE: TIME EXPIRED. Turn forcibly switched.";
           await saveAndBroadcast(code, gameState);
         }
