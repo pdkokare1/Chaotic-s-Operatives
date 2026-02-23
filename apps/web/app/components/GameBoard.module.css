@@ -90,30 +90,38 @@
   text-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
 
-.roomCodeDisplay {
+.headerBadges {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.timerDisplay, .roomCodeDisplay {
   background: var(--bg-panel);
   border: 1px solid var(--border);
   padding: 0.5rem 1rem;
   border-radius: var(--radius);
   text-align: center;
-  transition: background 0.2s;
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: background 0.2s;
 }
+
 .roomCodeDisplay:hover { background: var(--border); }
 
-.roomCodeLabel {
+.timerLabel, .roomCodeLabel {
   font-size: 0.6rem;
   color: var(--text-muted);
   margin-bottom: 2px;
 }
 
-.roomCodeBox {
+.timerValue, .roomCodeBox {
   font-family: monospace;
   font-size: 1.25rem;
   font-weight: bold;
   letter-spacing: 0.2em;
+  color: var(--text-main);
 }
 
 /* --- Command Center Layout --- */
@@ -226,15 +234,6 @@
   position: relative;
 }
 
-.timerDisplay {
-  position: absolute;
-  left: 1.5rem;
-  font-family: monospace;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: var(--text-muted);
-}
-
 .clueForm {
   display: flex;
   gap: 1rem;
@@ -344,6 +343,7 @@
   gap: 1rem;
   height: 140px; 
   flex-shrink: 0; 
+  transition: margin-top 0.3s ease;
 }
 
 .footerLayout {
@@ -432,7 +432,6 @@
   .sidePanel { width: 100%; min-width: 0; flex-direction: row; gap: 2rem; align-items: flex-start; }
   .rosterSection { margin-top: 0; display: flex; flex-wrap: wrap; gap: 1rem; flex: 1; }
   .progressContainer { width: 200px; flex-shrink: 0; }
-  .timerDisplay { display: none; }
 }
 
 /* Mobile Phones */
@@ -498,22 +497,28 @@
   .controls { width: 100%; flex-direction: row; flex-wrap: wrap; }
   .controlBtn { padding: 0.5rem; }
   
-  /* Header Scaling & Room Code Pill Badge */
+  /* Header Scaling & Pill Badges */
   .headerArea { 
-    flex-direction: row; 
-    gap: 0.5rem; 
-    text-align: left; 
+    flex-direction: column; 
+    gap: 0.75rem; 
+    text-align: center; 
     margin-bottom: 1rem; 
   }
   .dynamicHeader { font-size: 1.1rem; }
   
-  .roomCodeDisplay { 
+  .headerBadges { 
+    width: 100%; 
+    justify-content: center; 
+    flex-wrap: wrap; 
+  }
+  
+  .timerDisplay, .roomCodeDisplay { 
     width: auto; 
     flex-direction: row; 
     gap: 0.5rem; 
     padding: 0.25rem 0.75rem; 
     border-radius: 9999px; /* Pill shape */
   }
-  .roomCodeLabel { margin-bottom: 0; }
-  .roomCodeBox { font-size: 1rem; }
+  .timerLabel, .roomCodeLabel { margin-bottom: 0; }
+  .timerValue, .roomCodeBox { font-size: 1rem; }
 }
