@@ -17,10 +17,10 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
 
   const [selectedCategory, setSelectedCategory] = useState("Standard Mix");
   const [selectedTimer, setSelectedTimer] = useState(0);
+  const [selectedMode, setSelectedMode] = useState("standard"); 
 
   const [localPlayers, setLocalPlayers] = useState(gameState.players);
 
-  // Sync local state if the server changes it
   useEffect(() => {
     setLocalPlayers(gameState.players);
   }, [gameState.players]);
@@ -47,7 +47,7 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
     socket?.emit("change_role", role); 
   };
   
-  const startGame = () => { socket?.emit("start_game", { category: selectedCategory, timer: selectedTimer }); };
+  const startGame = () => { socket?.emit("start_game", { category: selectedCategory, timer: selectedTimer, mode: selectedMode }); };
 
   const leaveMission = () => {
     if (confirm("Are you sure you want to leave this mission?")) {
@@ -84,7 +84,7 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
                   player={player} 
                   isMe={player.id === currentPlayerId} 
                   onRoleSwitch={switchRole} 
-                  isHost={player.id === localPlayers[0]?.id} // UI 3: Identify Host
+                  isHost={player.id === localPlayers[0]?.id} 
                 />
               ))}
               {redTeam.length === 0 && <div className={styles.emptyState}>No Agents</div>}
@@ -103,7 +103,7 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
                   player={player} 
                   isMe={player.id === currentPlayerId} 
                   onRoleSwitch={switchRole} 
-                  isHost={player.id === localPlayers[0]?.id} // UI 3: Identify Host
+                  isHost={player.id === localPlayers[0]?.id} 
                 />
               ))}
               {blueTeam.length === 0 && <div className={styles.emptyState}>No Agents</div>}
@@ -134,6 +134,15 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
               <option value={60}>Timer: 60 Seconds</option>
               <option value={90}>Timer: 90 Seconds</option>
               <option value={120}>Timer: 120 Seconds</option>
+            </select>
+
+            <select 
+              value={selectedMode} 
+              onChange={(e) => setSelectedMode(e.target.value)}
+              className={styles.spyDropdown}
+            >
+              <option value="standard">Standard Operation</option>
+              <option value="blacksite">Blacksite Protocol</option>
             </select>
 
             <button onClick={startGame} className={styles.startButton}>START MISSION</button>
