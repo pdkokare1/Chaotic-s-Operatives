@@ -185,8 +185,8 @@ export default function GameBoard({ gameState }: GameBoardProps) {
             <DecipherText text={getDynamicHeaderText()} speed={20} />
           </div>
           <button onClick={copyCode} className={styles.roomCodeDisplay}>
-            <div style={{fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: 2}}>{copied ? "COPIED!" : "ROOM CODE"}</div>
-            <div className={styles.roomCodeBox}>{gameState.roomCode}</div>
+            <span className={styles.roomCodeLabel}>{copied ? "COPIED!" : "ROOM CODE"}</span>
+            <span className={styles.roomCodeBox}>{gameState.roomCode}</span>
           </button>
         </div>
 
@@ -302,15 +302,6 @@ export default function GameBoard({ gameState }: GameBoardProps) {
                 <DecipherText text={gameState.currentClue.word} speed={20} /> <span style={{color: 'var(--text-muted)'}}>/</span> {gameState.currentClue.number === 99 ? '∞' : gameState.currentClue.number} 
               </div>
               <button onClick={endTurn} className={styles.endTurnBtn}>END TURN</button>
-            </div>
-          )}
-
-          {gameState.phase === "playing" && (!isMyTurn || (!gameState.currentClue && !isSpymaster)) && (
-            <div className={styles.waitingPanel}>
-              <div style={{width: 10, height: 10, borderRadius: '50%', background: gameState.turn === 'red' ? 'var(--red-primary)' : 'var(--blue-primary)', animation: 'pulse 1s infinite'}} />
-              <span style={{fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.1em'}}>
-                <DecipherText text={`SECURE CHANNEL OPEN...`} speed={30} /> 
-              </span>
             </div>
           )}
         </div>
