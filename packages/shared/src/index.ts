@@ -30,7 +30,7 @@ export interface Player {
   team: Team;
   role: Role;
   deviceId?: string; 
-  currentTarget?: string | null; // NEW: Synchronized Targeting
+  currentTarget?: string | null; 
 }
 
 export interface Card {
@@ -40,7 +40,6 @@ export interface Card {
   revealed: boolean;
 }
 
-// Structure for a clue
 export interface Clue {
   word: string;
   number: number;
@@ -49,7 +48,9 @@ export interface Clue {
 export interface GameState {
   roomCode: string;
   phase: "lobby" | "playing" | "game_over";
+  mode: "standard" | "blacksite"; 
   turn: Team;
+  lastStarter: Team | null; 
   board: Card[];
   players: Player[];
   scores: { red: number; blue: number };
@@ -58,6 +59,7 @@ export interface GameState {
   currentClue: Clue | null;
   timerDuration: number;
   turnEndsAt: number | null; 
+  cardsRevealedThisTurn: number; 
 }
 
 // --- Validation Schemas ---
