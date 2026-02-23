@@ -24,19 +24,21 @@ export function generateGame(roomCode: string): GameState {
   return {
     roomCode,
     phase: "lobby",
+    mode: "standard",
     turn: TEAMS.RED,
+    lastStarter: null,
     board,
     players: [],
     scores: { red: 9, blue: 8 },
     winner: null,
     logs: ["Waiting for players..."],
     currentClue: null,
-    timerDuration: 0, // Default to off
-    turnEndsAt: null // NEW: Init as null
+    timerDuration: 0, 
+    turnEndsAt: null,
+    cardsRevealedThisTurn: 0 
   };
 }
 
-// --- Player Management ---
 export function addPlayer(gameState: GameState, id: string, name: string, deviceId?: string): GameState {
   const redCount = gameState.players.filter(p => p.team === TEAMS.RED).length;
   const blueCount = gameState.players.filter(p => p.team === TEAMS.BLUE).length;
@@ -61,54 +63,75 @@ export function updatePlayer(gameState: GameState, id: string, updates: Partial<
   return { ...gameState, players: gameState.players.map(p => p.id === id ? { ...p, ...updates } : p) };
 }
 
-// NEW: Accepts category and timer options
-export function startGame(gameState: GameState, options?: { category: string, timer: number }): GameState {
+export function startGame(gameState: GameState, options?: { category: string, timer: number, mode?: "standard" | "blacksite" }): GameState {
   if (gameState.phase !== "lobby") return gameState;
 
-  let newBoard = gameState.board;
-  let selectedTimer = 0;
-  let newTurnEndsAt = null;
+  const newMode = options?.mode || "standard";
+  const startingTeam = gameState.lastStarter === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED;
 
-  // Apply new settings if provided
-  if (options) {
-    selectedTimer = options.timer;
-    if (selectedTimer > 0) {
-      newTurnEndsAt = Date.now() + (selectedTimer * 1000);
-    }
-    
-    // Regenerate board words with selected category
-    if (options.category && CATEGORIZED_WORDS[options.category]) {
-      let pool = CATEGORIZED_WORDS[options.category];
-      // Fallback to standard mix if a category is somehow too small for the board
-      if (pool.length < 25) pool = WORD_LIST; 
-      
-      const shuffledWords = [...pool].sort(() => 0.5 - Math.random()).slice(0, 25);
-      newBoard = gameState.board.map((card, index) => ({
-        ...card,
-        word: shuffledWords[index] || "BLANK"
-      }));
-    }
+  let selectedTimer = options?.timer || 0;
+  let newTurnEndsAt = selectedTimer > 0 ? Date.now() + (selectedTimer * 1000) : null;
+
+  let pool = WORD_LIST;
+  if (options?.category && CATEGORIZED_WORDS[options.category]) {
+    pool = CATEGORIZED_WORDS[options.category];
+    if (pool.length < 25) pool = WORD_LIST; 
   }
+  const shuffledWords = [...pool].sort(() => 0.5 - Math.random()).slice(0, 25);
+
+  let types: string[] = [];
+  if (newMode === "blacksite") {
+    types = [
+      ...Array(9).fill(startingTeam),
+      ...Array(8).fill(startingTeam === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED),
+      ...Array(5).fill(CARD_TYPES.NEUTRAL),
+      ...Array(3).fill(CARD_TYPES.ASSASSIN)
+    ];
+  } else {
+    types = [
+      ...Array(9).fill(startingTeam),
+      ...Array(8).fill(startingTeam === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED),
+      ...Array(7).fill(CARD_TYPES.NEUTRAL),
+      CARD_TYPES.ASSASSIN
+    ];
+  }
+  types.sort(() => 0.5 - Math.random());
+
+  const newBoard = gameState.board.map((card, index) => ({
+    ...card,
+    word: shuffledWords[index] || "BLANK",
+    type: types[index],
+    revealed: false
+  }));
 
   return {
     ...gameState,
     phase: "playing",
+    turn: startingTeam,
+    lastStarter: startingTeam,
+    mode: newMode,
     board: newBoard,
+    scores: { red: startingTeam === TEAMS.RED ? 9 : 8, blue: startingTeam === TEAMS.BLUE ? 9 : 8 },
     timerDuration: selectedTimer,
     turnEndsAt: newTurnEndsAt,
-    logs: [...gameState.logs, "Mission Started. Red Team, awaiting orders."]
+    cardsRevealedThisTurn: 0,
+    logs: [...gameState.logs, `Mission Started. ${newMode.toUpperCase()} Protocol. ${startingTeam.toUpperCase()} Team, awaiting orders.`]
   };
 }
-
-// --- Gameplay Logic ---
 
 export function giveClue(gameState: GameState, word: string, number: number): GameState {
   if (gameState.phase !== "playing") return gameState;
   
+  let newTurnEndsAt = gameState.turnEndsAt;
+  if (gameState.mode === "standard" && gameState.timerDuration > 0) {
+    newTurnEndsAt = Date.now() + (gameState.timerDuration * 1000);
+  }
+
   return {
     ...gameState,
     currentClue: { word, number },
-    logs: [...gameState.logs, `${gameState.turn.toUpperCase()} Spymaster: ${word} (${number})`]
+    turnEndsAt: newTurnEndsAt,
+    logs: [...gameState.logs, `${gameState.turn.toUpperCase()} Spymaster: ${word} (${number === 99 ? '∞' : number})`]
   };
 }
 
@@ -121,6 +144,7 @@ export function endTurn(gameState: GameState): GameState {
     ...gameState,
     turn: opponent,
     currentClue: null, 
+    cardsRevealedThisTurn: 0, 
     turnEndsAt: gameState.timerDuration > 0 ? Date.now() + (gameState.timerDuration * 1000) : null,
     logs: [...gameState.logs, `${gameState.turn.toUpperCase()} ended their turn.`]
   };
@@ -139,10 +163,11 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   newBoard[cardIndex] = { ...card, revealed: true };
   
   const newState = { ...gameState, board: newBoard, logs: [...gameState.logs] };
+  newState.cardsRevealedThisTurn += 1; 
+
   const currentTeam = newState.turn;
   const opponentTeam = currentTeam === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED;
 
-  // Rule Application
   if (card.type === CARD_TYPES.ASSASSIN) {
     newState.phase = "game_over";
     newState.winner = opponentTeam;
@@ -152,6 +177,7 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   else if (card.type === CARD_TYPES.NEUTRAL) {
     newState.turn = opponentTeam;
     newState.currentClue = null; 
+    newState.cardsRevealedThisTurn = 0; 
     newState.turnEndsAt = newState.timerDuration > 0 ? Date.now() + (newState.timerDuration * 1000) : null;
     newState.logs.push(`${currentTeam.toUpperCase()} hit a civilian. Turn over.`);
   } 
@@ -170,6 +196,7 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
     newState.scores[opponentTeam] -= 1;
     newState.turn = opponentTeam;
     newState.currentClue = null; 
+    newState.cardsRevealedThisTurn = 0; 
     newState.turnEndsAt = newState.timerDuration > 0 ? Date.now() + (newState.timerDuration * 1000) : null;
     newState.logs.push(`${currentTeam.toUpperCase()} found an Enemy Spy! Turn over.`);
 
