@@ -478,9 +478,14 @@
     box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
   }
 
-  /* Footer Reflow */
+  /* Footer Reflow - FIX: Added flex-direction and padding-bottom */
+  .footer { 
+    flex-direction: column; 
+    height: auto; 
+    padding-bottom: 120px; 
+  } 
   .footerLayout { flex-direction: column; }
-  .footer { height: auto; padding-bottom: 1rem; } 
+  
   .logPanel, .clueHistoryPanel { min-height: 150px; max-height: 200px; }
   .controls { width: 100%; flex-direction: row; flex-wrap: wrap; }
   .controlBtn { padding: 0.5rem; }
