@@ -29,8 +29,7 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const isMyTurn = gameState.turn === myPlayer?.team;
   const isSpymaster = myPlayer?.role === ROLES.SPYMASTER;
   const isHost = gameState.players[0]?.id === myPlayer?.id;
-  const [viewAsSpymaster, setViewAsSpymaster] = useState(false);
-  const showSpymasterView = isSpymaster || viewAsSpymaster;
+  const showSpymasterView = isSpymaster; 
 
   const redTeam = gameState.players.filter(p => p.team === TEAMS.RED);
   const blueTeam = gameState.players.filter(p => p.team === TEAMS.BLUE);
@@ -157,6 +156,8 @@ export default function GameBoard({ gameState }: GameBoardProps) {
     }
   };
 
+  const showActionBar = gameState.phase === "playing" && isMyTurn && ((isSpymaster && !gameState.currentClue) || (!isSpymaster && gameState.currentClue));
+
   return (
     <>
       {crtEnabled && <div className="crt-overlay" />} 
@@ -184,10 +185,18 @@ export default function GameBoard({ gameState }: GameBoardProps) {
           <div className={styles.dynamicHeader}>
             <DecipherText text={getDynamicHeaderText()} speed={20} />
           </div>
-          <button onClick={copyCode} className={styles.roomCodeDisplay}>
-            <span className={styles.roomCodeLabel}>{copied ? "COPIED!" : "ROOM CODE"}</span>
-            <span className={styles.roomCodeBox}>{gameState.roomCode}</span>
-          </button>
+          <div className={styles.headerBadges}>
+            {gameState.timerDuration > 0 && gameState.phase === "playing" && (
+              <div className={styles.timerDisplay}>
+                 <span className={styles.timerLabel}>TIME</span>
+                 <span className={styles.timerValue}>{formatTime(timeLeft)}</span>
+              </div>
+            )}
+            <button onClick={copyCode} className={styles.roomCodeDisplay}>
+              <span className={styles.roomCodeLabel}>{copied ? "COPIED!" : "ROOM CODE"}</span>
+              <span className={styles.roomCodeBox}>{gameState.roomCode}</span>
+            </button>
+          </div>
         </div>
 
         <div className={styles.playArea}>
@@ -259,54 +268,48 @@ export default function GameBoard({ gameState }: GameBoardProps) {
           </div>
         </div>
 
-        {/* BOTTOM: CLUE CONSOLE */}
-        <div className={styles.actionBar}>
-          {gameState.timerDuration > 0 && gameState.phase === "playing" && (
-            <div className={styles.timerDisplay}>
-               TIME: {formatTime(timeLeft)}
-            </div>
-          )}
-
-          {gameState.phase === "playing" && isMyTurn && isSpymaster && !gameState.currentClue && (
-            <form onSubmit={submitClue} className={styles.clueForm}>
-              {pendingClue ? (
-                <div className={styles.confirmPanel}>
-                  <div className={styles.pendingDisplay}>CONFIRM CLUE: {pendingClue.word} / {pendingClue.number === 99 ? '∞' : pendingClue.number}</div>
-                  <button type="button" onClick={confirmClue} className={styles.confirmBtn}>TRANSMIT</button>
-                  <button type="button" onClick={cancelClue} className={styles.cancelBtn}>ABORT</button>
-                </div>
-              ) : (
-                <>
-                  <input 
-                    type="text" 
-                    placeholder="TYPE CLUE WORD..." 
-                    value={clueWord}
-                    onChange={e => setClueWord(e.target.value.toUpperCase().trim())}
-                    className={styles.clueInput}
-                    autoFocus
-                  />
-                  <div className={styles.clueNumController}>
-                    <button type="button" onClick={handleDecrement} className={styles.clueNumBtn}>-</button>
-                    <span className={styles.clueNumValue}>{clueNum === "99" ? "∞" : clueNum}</span>
-                    <button type="button" onClick={handleIncrement} className={styles.clueNumBtn}>+</button>
+        {/* BOTTOM: CONDITIONAL CLUE CONSOLE */}
+        {showActionBar && (
+          <div className={styles.actionBar}>
+            {isSpymaster && !gameState.currentClue ? (
+              <form onSubmit={submitClue} className={styles.clueForm}>
+                {pendingClue ? (
+                  <div className={styles.confirmPanel}>
+                    <div className={styles.pendingDisplay}>CONFIRM CLUE: {pendingClue.word} / {pendingClue.number === 99 ? '∞' : pendingClue.number}</div>
+                    <button type="button" onClick={confirmClue} className={styles.confirmBtn}>TRANSMIT</button>
+                    <button type="button" onClick={cancelClue} className={styles.cancelBtn}>ABORT</button>
                   </div>
-                  <button type="submit" className={styles.sendBtn}>PREPARE</button>
-                </>
-              )}
-            </form>
-          )}
-
-          {gameState.phase === "playing" && isMyTurn && !isSpymaster && gameState.currentClue && (
-            <div className={styles.activeCluePanel}>
-              <div className={styles.clueDisplay}>
-                <DecipherText text={gameState.currentClue.word} speed={20} /> <span style={{color: 'var(--text-muted)'}}>/</span> {gameState.currentClue.number === 99 ? '∞' : gameState.currentClue.number} 
+                ) : (
+                  <>
+                    <input 
+                      type="text" 
+                      placeholder="TYPE CLUE WORD..." 
+                      value={clueWord}
+                      onChange={e => setClueWord(e.target.value.toUpperCase().trim())}
+                      className={styles.clueInput}
+                      autoFocus
+                    />
+                    <div className={styles.clueNumController}>
+                      <button type="button" onClick={handleDecrement} className={styles.clueNumBtn}>-</button>
+                      <span className={styles.clueNumValue}>{clueNum === "99" ? "∞" : clueNum}</span>
+                      <button type="button" onClick={handleIncrement} className={styles.clueNumBtn}>+</button>
+                    </div>
+                    <button type="submit" className={styles.sendBtn}>PREPARE</button>
+                  </>
+                )}
+              </form>
+            ) : (
+              <div className={styles.activeCluePanel}>
+                <div className={styles.clueDisplay}>
+                  <DecipherText text={gameState.currentClue!.word} speed={20} /> <span style={{color: 'var(--text-muted)'}}>/</span> {gameState.currentClue!.number === 99 ? '∞' : gameState.currentClue!.number} 
+                </div>
+                <button onClick={endTurn} className={styles.endTurnBtn}>END TURN</button>
               </div>
-              <button onClick={endTurn} className={styles.endTurnBtn}>END TURN</button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        <div className={styles.footer}>
+        <div className={styles.footer} style={{ marginTop: showActionBar ? '0' : '1.5rem' }}>
           <div className={styles.footerLayout}>
             <div className={styles.logPanel}>
               <div className={styles.panelHeader}>ACTION LOG</div>
@@ -333,11 +336,6 @@ export default function GameBoard({ gameState }: GameBoardProps) {
           </div>
 
           <div className={styles.controls}>
-             {!isSpymaster && (
-               <button onClick={() => setViewAsSpymaster(!viewAsSpymaster)} className={styles.controlBtn}>
-                 {viewAsSpymaster ? "HIDE CHEAT" : "VIEW CHEAT"}
-               </button>
-             )}
              {isHost && (
                <button onClick={handleRestart} className={styles.controlBtn} style={{borderColor: 'var(--red-dark)', color: 'var(--red-primary)'}}>
                  RESET
