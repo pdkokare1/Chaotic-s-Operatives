@@ -71,7 +71,7 @@
 }
 .restartBtn:hover { transform: scale(1.05); }
 
-/* --- NEW: Header Area & Dynamic Marquee --- */
+/* --- Header Area & Dynamic Marquee --- */
 .headerArea {
   display: flex;
   justify-content: space-between;
@@ -107,7 +107,7 @@
   letter-spacing: 0.2em;
 }
 
-/* --- NEW: Command Center Layout --- */
+/* --- Command Center Layout --- */
 .playArea {
   display: flex;
   gap: 1.5rem;
@@ -247,7 +247,6 @@
 }
 .clueInput:focus { border-color: white; outline: none; }
 
-/* --- NEW: Tactile + / - Buttons --- */
 .clueNumController {
   display: flex;
   align-items: center;
@@ -415,22 +414,79 @@
   color: var(--text-main);
 }
 
+/* ========================================= */
+/* --- RESPONSIVE BREAKPOINTS & MOBILE   --- */
+/* ========================================= */
+
+/* Tablets */
 @media (max-width: 1024px) {
   .playArea { flex-direction: column; }
-  .sidePanel { width: 100%; min-width: 0; flex-direction: row; gap: 2rem; }
-  .rosterSection { margin-top: 0; display: flex; gap: 1rem; flex: 1; }
-  .progressContainer { width: 200px; }
+  .sidePanel { width: 100%; min-width: 0; flex-direction: row; gap: 2rem; align-items: flex-start; }
+  .rosterSection { margin-top: 0; display: flex; flex-wrap: wrap; gap: 1rem; flex: 1; }
+  .progressContainer { width: 200px; flex-shrink: 0; }
   .timerDisplay { display: none; }
 }
 
+/* Mobile Phones */
 @media (max-width: 768px) {
+  /* Reorder Grid to Top, side panels below */
+  .playArea { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 0.5rem; 
+  }
+  .gridCenter { grid-column: 1 / -1; order: 1; }
+  .bluePanel { order: 2; }
+  .redPanel { order: 3; }
+
+  /* Compact Side-by-Side Rosters */
+  .sidePanel { 
+    flex-direction: column; 
+    gap: 0.5rem; 
+    padding: 0.5rem;
+  }
+  .progressContainer { width: 100%; align-items: center; margin-bottom: 0.5rem; }
+  .progressBar { display: none; } 
+  .scoreRed, .scoreBlue { font-size: 1.5rem; text-align: center; }
+  
+  .rosterSection { flex-direction: column; gap: 0.25rem; }
+  .rosterTitle { text-align: center; font-size: 0.65rem; }
+  .rosterPlayer { text-align: center; font-size: 0.75rem; }
+
   .grid { gap: 0.25rem; }
+  
+  /* Clue Input Scaling */
   .clueForm, .confirmPanel { flex-direction: column; }
+  .clueInput { font-size: 1rem; padding: 0.5rem 1rem; width: 100%; }
   .clueNumController { width: 100%; justify-content: space-between; }
-  .sendBtn, .confirmBtn, .cancelBtn { width: 100%; }
-  .pendingDisplay { text-align: center; width: 100%; }
+  .sendBtn, .confirmBtn, .cancelBtn { width: 100%; font-size: 1rem; padding: 0.5rem; }
+  .pendingDisplay { text-align: center; width: 100%; font-size: 0.9rem; padding: 0.5rem; }
+  
+  /* Sticky Native-App Feel Console */
+  .actionBar {
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    margin: 1rem -1rem 0 -1rem; 
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    background: rgba(23, 23, 23, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 0.75rem 1rem;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+  }
+
+  /* Footer Reflow */
   .footerLayout { flex-direction: column; }
-  .footer { height: 280px; } 
+  .footer { height: auto; padding-bottom: 1rem; } 
+  .logPanel, .clueHistoryPanel { min-height: 150px; max-height: 200px; }
+  .controls { width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .controlBtn { padding: 0.5rem; }
+  
+  /* Header Scaling */
+  .headerArea { flex-direction: column; gap: 0.75rem; text-align: center; margin-bottom: 1rem; }
   .dynamicHeader { font-size: 1.2rem; }
-  .sidePanel { flex-direction: column; gap: 1rem; }
+  .roomCodeDisplay { width: 100%; }
 }
