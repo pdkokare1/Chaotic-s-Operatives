@@ -168,7 +168,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("start_game", (options: { category: string, timer: number }) => {
+  socket.on("start_game", (options: { category: string, timer: number, mode: "standard" | "blacksite" }) => {
     const code = socketToRoom.get(socket.id);
     if (code) {
       withLock(code, async () => {
@@ -246,6 +246,7 @@ io.on("connection", (socket) => {
       let oldState = await getGame(code);
       if (oldState) {
         let newState = generateGame(code);
+        newState.lastStarter = oldState.lastStarter; 
         newState.players = oldState.players.map((p: any) => ({ ...p, currentTarget: null }));
         newState.phase = "lobby"; 
         newState.logs = ["Mission Reset. Prepare for deployment."];
