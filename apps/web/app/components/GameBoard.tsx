@@ -89,7 +89,10 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const submitClue = (e: React.FormEvent) => {
     e.preventDefault();
     if (!socket || !clueWord) return;
-    setPendingClue({ word: clueWord.toUpperCase().trim(), number: parseInt(clueNum) });
+    setPendingClue({ 
+      word: clueWord.toUpperCase().trim(), 
+      number: gameState.mode === "blacksite" ? 99 : parseInt(clueNum) 
+    });
   };
 
   const confirmClue = () => {
@@ -125,18 +128,23 @@ export default function GameBoard({ gameState }: GameBoardProps) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const renderLogEntry = (log: string, isNewest: boolean) => {
+  const renderLogEntry = (log: string, isNewest: boolean, isHistory: boolean = false) => {
+    let displayText = log;
+    if (isHistory && gameState.mode === "blacksite" && !isNewest) {
+      displayText = log.replace(/(Spymaster:\s)([A-Z0-9\-]+)(\s\()/, "$1[REDACTED]$3");
+    }
+
     const LogText = ({ text, color }: { text: string, color?: string }) => (
       <span style={{ color }}>{isNewest ? <TypewriterText text={text} speed={25} /> : text}</span>
     );
 
-    if (log.includes("FATAL ERROR")) return <><span className={styles.tagFatal}>FATAL</span> <LogText text={log.replace("FATAL ERROR: ", "")} color="var(--red-primary)" /></>;
-    if (log.includes("civilian")) return <><span className={styles.tagWarn}>INTEL</span> <LogText text={log} color="var(--yellow-accent)" /></>;
-    if (log.startsWith("RED") || log.includes("Red Team")) return <><span className={styles.tagRed}>RED</span> <LogText text={log.replace(/^RED\s/, "")} /></>;
-    if (log.startsWith("BLUE") || log.includes("Blue Team")) return <><span className={styles.tagBlue}>BLUE</span> <LogText text={log.replace(/^BLUE\s/, "")} /></>;
-    if (log.includes("MISSION") || log.includes("SYSTEM")) return <><span className={styles.tagSystem}>SYSTEM</span> <LogText text={log.replace("SYSTEM OVERRIDE: ", "")} /></>;
+    if (displayText.includes("FATAL ERROR")) return <><span className={styles.tagFatal}>FATAL</span> <LogText text={displayText.replace("FATAL ERROR: ", "")} color="var(--red-primary)" /></>;
+    if (displayText.includes("civilian")) return <><span className={styles.tagWarn}>INTEL</span> <LogText text={displayText} color="var(--yellow-accent)" /></>;
+    if (displayText.startsWith("RED") || displayText.includes("Red Team")) return <><span className={styles.tagRed}>RED</span> <LogText text={displayText.replace(/^RED\s/, "")} /></>;
+    if (displayText.startsWith("BLUE") || displayText.includes("Blue Team")) return <><span className={styles.tagBlue}>BLUE</span> <LogText text={displayText.replace(/^BLUE\s/, "")} /></>;
+    if (displayText.includes("MISSION") || displayText.includes("SYSTEM")) return <><span className={styles.tagSystem}>SYSTEM</span> <LogText text={displayText.replace("SYSTEM OVERRIDE: ", "")} /></>;
     
-    return <><span className={styles.tagSystem}>INFO</span> <LogText text={log} /></>;
+    return <><span className={styles.tagSystem}>INFO</span> <LogText text={displayText} /></>;
   };
 
   const clueHistory = gameState.logs.filter(log => log.includes("Spymaster:"));
@@ -285,15 +293,24 @@ export default function GameBoard({ gameState }: GameBoardProps) {
                       type="text" 
                       placeholder="TYPE CLUE WORD..." 
                       value={clueWord}
+                      maxLength={10} 
                       onChange={e => setClueWord(e.target.value.toUpperCase().trim())}
                       className={styles.clueInput}
                       autoFocus
                     />
-                    <div className={styles.clueNumController}>
-                      <button type="button" onClick={handleDecrement} className={styles.clueNumBtn}>-</button>
-                      <span className={styles.clueNumValue}>{clueNum === "99" ? "∞" : clueNum}</span>
-                      <button type="button" onClick={handleIncrement} className={styles.clueNumBtn}>+</button>
-                    </div>
+                    
+                    {gameState.mode !== "blacksite" ? (
+                      <div className={styles.clueNumController}>
+                        <button type="button" onClick={handleDecrement} className={styles.clueNumBtn}>-</button>
+                        <span className={styles.clueNumValue}>{clueNum === "99" ? "∞" : clueNum}</span>
+                        <button type="button" onClick={handleIncrement} className={styles.clueNumBtn}>+</button>
+                      </div>
+                    ) : (
+                      <div className={styles.clueNumController} style={{justifyContent: 'center', background: 'var(--red-dark)', borderColor: 'var(--red-primary)'}}>
+                        <span className={styles.clueNumValue} style={{color: 'white'}}>∞</span>
+                      </div>
+                    )}
+                    
                     <button type="submit" className={styles.sendBtn}>PREPARE</button>
                   </>
                 )}
@@ -303,7 +320,13 @@ export default function GameBoard({ gameState }: GameBoardProps) {
                 <div className={styles.clueDisplay}>
                   <DecipherText text={gameState.currentClue!.word} speed={20} /> <span style={{color: 'var(--text-muted)'}}>/</span> {gameState.currentClue!.number === 99 ? '∞' : gameState.currentClue!.number} 
                 </div>
-                <button onClick={endTurn} className={styles.endTurnBtn}>END TURN</button>
+                <button 
+                  onClick={endTurn} 
+                  className={styles.endTurnBtn}
+                  disabled={gameState.mode === 'blacksite' && gameState.cardsRevealedThisTurn === 0}
+                >
+                  {gameState.mode === 'blacksite' && gameState.cardsRevealedThisTurn === 0 ? "NO RETREAT" : "END TURN"}
+                </button>
               </div>
             )}
           </div>
@@ -316,7 +339,7 @@ export default function GameBoard({ gameState }: GameBoardProps) {
               <div className={styles.logs}>
                 {gameState.logs.slice().reverse().map((log, i) => (
                   <div key={i} className={styles.logEntry}>
-                     {renderLogEntry(log, i === 0)} 
+                     {renderLogEntry(log, i === 0, false)} 
                   </div>
                 ))}
               </div>
@@ -327,7 +350,7 @@ export default function GameBoard({ gameState }: GameBoardProps) {
               <div className={styles.logs}>
                 {clueHistory.slice().reverse().map((log, i) => (
                   <div key={i} className={styles.logEntry}>
-                     {renderLogEntry(log, false)} 
+                     {renderLogEntry(log, false, true)} 
                   </div>
                 ))}
                 {clueHistory.length === 0 && <div style={{opacity: 0.5, fontStyle: 'italic', fontSize: '0.8rem'}}>No clues transmitted.</div>}
