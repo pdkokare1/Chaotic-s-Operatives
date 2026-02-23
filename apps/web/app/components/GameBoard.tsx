@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GameState, ROLES } from "@operative/shared";
+import { GameState, ROLES, TEAMS } from "@operative/shared";
 import GameCard from "./GameCard";
 import DecipherText from "./DecipherText"; 
 import TypewriterText from "./TypewriterText"; 
@@ -22,9 +22,7 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const [timeLeft, setTimeLeft] = useState(gameState.timerDuration);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
-  // UX 3: Spymaster Confirm Setup
   const [pendingClue, setPendingClue] = useState<{ word: string, number: number } | null>(null);
-  // Graphic 3: CRT Toggle
   const [crtEnabled, setCrtEnabled] = useState(true);
 
   const myPlayer = gameState.players.find(p => p.id === socket?.id);
@@ -34,9 +32,12 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   const [viewAsSpymaster, setViewAsSpymaster] = useState(false);
   const showSpymasterView = isSpymaster || viewAsSpymaster;
 
+  const redTeam = gameState.players.filter(p => p.team === TEAMS.RED);
+  const blueTeam = gameState.players.filter(p => p.team === TEAMS.BLUE);
+
   useEffect(() => {
     setSelectedCardId(null); 
-    setPendingClue(null); // Clear pending clue if turn changes
+    setPendingClue(null); 
     if (socket && myPlayer) {
       socket.emit("set_target", { roomCode: gameState.roomCode, cardId: null });
     }
@@ -72,10 +73,23 @@ export default function GameBoard({ gameState }: GameBoardProps) {
     }
   };
 
+  const handleIncrement = () => {
+    let num = parseInt(clueNum);
+    if (isNaN(num) || num === 99) return;
+    if (num >= 9) setClueNum("99"); 
+    else setClueNum((num + 1).toString());
+  };
+
+  const handleDecrement = () => {
+    let num = parseInt(clueNum);
+    if (isNaN(num)) return;
+    if (num === 99) setClueNum("9"); 
+    else if (num > 0) setClueNum((num - 1).toString());
+  };
+
   const submitClue = (e: React.FormEvent) => {
     e.preventDefault();
     if (!socket || !clueWord) return;
-    // UX 3: Ask for confirmation instead of immediate emit
     setPendingClue({ word: clueWord.toUpperCase().trim(), number: parseInt(clueNum) });
   };
 
@@ -126,12 +140,22 @@ export default function GameBoard({ gameState }: GameBoardProps) {
     return <><span className={styles.tagSystem}>INFO</span> <LogText text={log} /></>;
   };
 
-  // UI 1: Generate Clue History
   const clueHistory = gameState.logs.filter(log => log.includes("Spymaster:"));
-  
-  // Graphic 2: Trigger Glitch if Assassin was hit
   const isFatalError = gameState.logs.some(log => log.includes("FATAL ERROR"));
   const containerClass = `${styles.container} ${gameState.phase === 'playing' ? (gameState.turn === 'red' ? styles.glowRed : styles.glowBlue) : ''} ${isFatalError ? styles.fatalGlitchContainer : ''}`;
+
+  const getDynamicHeaderText = () => {
+    if (gameState.phase === "game_over") return "MISSION ACCOMPLISHED";
+    if (isMyTurn) {
+      if (isSpymaster) {
+        return gameState.currentClue ? "AWAITING OPERATIVE ACTION" : "GIVE YOUR OPERATIVES A CLUE";
+      } else {
+        return gameState.currentClue ? "EXECUTE MISSION: SELECT TARGETS" : "AWAITING SPYMASTER CLUE";
+      }
+    } else {
+      return `AWAITING ${gameState.turn.toUpperCase()} TEAM`;
+    }
+  };
 
   return (
     <>
@@ -147,7 +171,7 @@ export default function GameBoard({ gameState }: GameBoardProps) {
               <h2 className={`${styles.winnerTitle} ${gameState.winner === "red" ? styles.redWin : styles.blueWin}`}>
                 <DecipherText text={`${gameState.winner?.toUpperCase()} WINS!`} speed={40} /> 
               </h2>
-              <p style={{fontFamily: 'monospace', color: 'var(--text-muted)'}}>MISSION ACCOMPLISHED</p>
+              <p style={{fontFamily: 'monospace', color: 'var(--text-muted)'}}>ALL TARGETS NEUTRALIZED</p>
               
               {isHost ? (
                 <button onClick={handleRestart} className={styles.restartBtn}>PLAY AGAIN</button>
@@ -156,35 +180,117 @@ export default function GameBoard({ gameState }: GameBoardProps) {
           </div>
         )}
 
+        <div className={styles.headerArea}>
+          <div className={styles.dynamicHeader}>
+            <DecipherText text={getDynamicHeaderText()} speed={20} />
+          </div>
+          <button onClick={copyCode} className={styles.roomCodeDisplay}>
+            <div style={{fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: 2}}>{copied ? "COPIED!" : "ROOM CODE"}</div>
+            <div className={styles.roomCodeBox}>{gameState.roomCode}</div>
+          </button>
+        </div>
+
+        <div className={styles.playArea}>
+          {/* LEFT SIDEBAR: BLUE TEAM */}
+          <div className={`${styles.sidePanel} ${styles.bluePanel} ${gameState.turn === 'blue' ? styles.panelActive : ''}`}>
+            <div className={`${styles.progressContainer} ${gameState.turn === 'blue' ? styles.scoreActive : styles.scoreInactive}`}>
+              <div className={styles.scoreBlue}>BLUE: {gameState.scores.blue}</div>
+              <div className={styles.progressBar}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className={`${styles.progressSegment} ${i < (8 - gameState.scores.blue) ? styles.segmentBlueFilled : ''}`} />
+                ))}
+              </div>
+            </div>
+            <div className={styles.rosterSection}>
+              <div className={styles.rosterTitle}>OPERATIVES</div>
+              {blueTeam.filter(p => p.role === ROLES.OPERATIVE).map(p => (
+                <div key={p.id} className={styles.rosterPlayer}>{p.name} {p.id === socket?.id && "(YOU)"}</div>
+              ))}
+              <div className={styles.rosterTitle} style={{marginTop: '1rem'}}>SPYMASTER</div>
+              {blueTeam.filter(p => p.role === ROLES.SPYMASTER).map(p => (
+                <div key={p.id} className={`${styles.rosterPlayer} ${styles.isSpymaster}`}>{p.name} {p.id === socket?.id && "(YOU)"}</div>
+              ))}
+            </div>
+          </div>
+
+          {/* CENTER: GRID */}
+          <div className={styles.gridCenter}>
+            <div className={styles.grid}>
+              {gameState.board.map((card) => {
+                const targetingTeammates = gameState.players
+                  .filter(p => p.currentTarget === card.id && p.id !== socket?.id && p.team === myPlayer?.team)
+                  .map(p => p.name);
+
+                return (
+                  <GameCard
+                    key={card.id}
+                    card={card}
+                    onClick={() => handleCardClick(card.id)}
+                    disabled={gameState.phase === "game_over" || (isMyTurn && !isSpymaster && !gameState.currentClue)}
+                    isSpymaster={showSpymasterView}
+                    isSelected={selectedCardId === card.id} 
+                    targetingPlayers={targetingTeammates}
+                  />
+                )
+              })}
+            </div>
+          </div>
+
+          {/* RIGHT SIDEBAR: RED TEAM */}
+          <div className={`${styles.sidePanel} ${styles.redPanel} ${gameState.turn === 'red' ? styles.panelActive : ''}`}>
+             <div className={`${styles.progressContainer} ${gameState.turn === 'red' ? styles.scoreActive : styles.scoreInactive}`}>
+              <div className={styles.scoreRed}>RED: {gameState.scores.red}</div>
+              <div className={styles.progressBar}>
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className={`${styles.progressSegment} ${i < (9 - gameState.scores.red) ? styles.segmentRedFilled : ''}`} />
+                ))}
+              </div>
+            </div>
+            <div className={styles.rosterSection}>
+              <div className={styles.rosterTitle}>OPERATIVES</div>
+              {redTeam.filter(p => p.role === ROLES.OPERATIVE).map(p => (
+                <div key={p.id} className={styles.rosterPlayer}>{p.name} {p.id === socket?.id && "(YOU)"}</div>
+              ))}
+              <div className={styles.rosterTitle} style={{marginTop: '1rem'}}>SPYMASTER</div>
+              {redTeam.filter(p => p.role === ROLES.SPYMASTER).map(p => (
+                <div key={p.id} className={`${styles.rosterPlayer} ${styles.isSpymaster}`}>{p.name} {p.id === socket?.id && "(YOU)"}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM: CLUE CONSOLE */}
         <div className={styles.actionBar}>
+          {gameState.timerDuration > 0 && gameState.phase === "playing" && (
+            <div className={styles.timerDisplay}>
+               TIME: {formatTime(timeLeft)}
+            </div>
+          )}
+
           {gameState.phase === "playing" && isMyTurn && isSpymaster && !gameState.currentClue && (
             <form onSubmit={submitClue} className={styles.clueForm}>
               {pendingClue ? (
                 <div className={styles.confirmPanel}>
-                  <div className={styles.pendingDisplay}>CONFIRM: {pendingClue.word} / {pendingClue.number}</div>
-                  <button type="button" onClick={confirmClue} className={styles.confirmBtn}>CONFIRM</button>
-                  <button type="button" onClick={cancelClue} className={styles.cancelBtn}>CANCEL</button>
+                  <div className={styles.pendingDisplay}>CONFIRM CLUE: {pendingClue.word} / {pendingClue.number === 99 ? '∞' : pendingClue.number}</div>
+                  <button type="button" onClick={confirmClue} className={styles.confirmBtn}>TRANSMIT</button>
+                  <button type="button" onClick={cancelClue} className={styles.cancelBtn}>ABORT</button>
                 </div>
               ) : (
                 <>
                   <input 
                     type="text" 
-                    placeholder="CLUE WORD" 
+                    placeholder="TYPE CLUE WORD..." 
                     value={clueWord}
                     onChange={e => setClueWord(e.target.value.toUpperCase().trim())}
                     className={styles.clueInput}
                     autoFocus
                   />
-                  <select 
-                    value={clueNum}
-                    onChange={e => setClueNum(e.target.value)}
-                    className={styles.clueSelect}
-                  >
-                    {[1,2,3,4,5,6,7,8,9].map(n => <option key={n} value={n}>{n}</option>)}
-                    <option value="0">0</option>
-                    <option value="99">∞</option>
-                  </select>
-                  <button type="submit" className={styles.sendBtn}>SEND</button>
+                  <div className={styles.clueNumController}>
+                    <button type="button" onClick={handleDecrement} className={styles.clueNumBtn}>-</button>
+                    <span className={styles.clueNumValue}>{clueNum === "99" ? "∞" : clueNum}</span>
+                    <button type="button" onClick={handleIncrement} className={styles.clueNumBtn}>+</button>
+                  </div>
+                  <button type="submit" className={styles.sendBtn}>PREPARE</button>
                 </>
               )}
             </form>
@@ -193,7 +299,7 @@ export default function GameBoard({ gameState }: GameBoardProps) {
           {gameState.phase === "playing" && isMyTurn && !isSpymaster && gameState.currentClue && (
             <div className={styles.activeCluePanel}>
               <div className={styles.clueDisplay}>
-                <DecipherText text={gameState.currentClue.word} speed={20} /> <span style={{color: 'var(--text-muted)'}}>/</span> {gameState.currentClue.number} 
+                <DecipherText text={gameState.currentClue.word} speed={20} /> <span style={{color: 'var(--text-muted)'}}>/</span> {gameState.currentClue.number === 99 ? '∞' : gameState.currentClue.number} 
               </div>
               <button onClick={endTurn} className={styles.endTurnBtn}>END TURN</button>
             </div>
@@ -203,68 +309,14 @@ export default function GameBoard({ gameState }: GameBoardProps) {
             <div className={styles.waitingPanel}>
               <div style={{width: 10, height: 10, borderRadius: '50%', background: gameState.turn === 'red' ? 'var(--red-primary)' : 'var(--blue-primary)', animation: 'pulse 1s infinite'}} />
               <span style={{fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.1em'}}>
-                <DecipherText text={`WAITING FOR ${gameState.turn.toUpperCase()}...`} speed={30} /> 
+                <DecipherText text={`SECURE CHANNEL OPEN...`} speed={30} /> 
               </span>
             </div>
           )}
         </div>
 
-        {/* --- SCOREBOARD --- */}
-        <div className={styles.scoreboard}>
-          <div className={`${styles.progressContainer} ${gameState.turn === 'red' ? styles.scoreActive : styles.scoreInactive}`}>
-            <div className={styles.scoreRed}>RED: {gameState.scores.red}</div>
-            <div className={styles.progressBar}>
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className={`${styles.progressSegment} ${i < (9 - gameState.scores.red) ? styles.segmentRedFilled : ''}`} />
-              ))}
-            </div>
-          </div>
-          
-          <button onClick={copyCode} className={styles.roomCodeDisplay}>
-            <div style={{fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: 4}}>{copied ? "COPIED!" : "SECURE CHANNEL"}</div>
-            <div className={styles.roomCodeBox}>{gameState.roomCode}</div>
-            
-            {gameState.timerDuration > 0 && gameState.phase === "playing" && (
-              <div style={{ fontSize: '0.8rem', marginTop: 4, color: 'var(--text-muted)', fontWeight: 'normal' }}>
-                TIME: {formatTime(timeLeft)}
-              </div>
-            )}
-          </button>
-          
-          <div className={`${styles.progressContainer} ${gameState.turn === 'blue' ? styles.scoreActive : styles.scoreInactive}`}>
-            <div className={styles.scoreBlue}>BLUE: {gameState.scores.blue}</div>
-            <div className={styles.progressBar}>
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className={`${styles.progressSegment} ${i < (8 - gameState.scores.blue) ? styles.segmentBlueFilled : ''}`} />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* --- GRID --- */}
-        <div className={styles.grid}>
-          {gameState.board.map((card) => {
-            const targetingTeammates = gameState.players
-              .filter(p => p.currentTarget === card.id && p.id !== socket?.id && p.team === myPlayer?.team)
-              .map(p => p.name);
-
-            return (
-              <GameCard
-                key={card.id}
-                card={card}
-                onClick={() => handleCardClick(card.id)}
-                disabled={gameState.phase === "game_over" || (isMyTurn && !isSpymaster && !gameState.currentClue)}
-                isSpymaster={showSpymasterView}
-                isSelected={selectedCardId === card.id} 
-                targetingPlayers={targetingTeammates}
-              />
-            )
-          })}
-        </div>
-
         <div className={styles.footer}>
           <div className={styles.footerLayout}>
-            {/* UI 1: Split logs into Action Log & Clue History */}
             <div className={styles.logPanel}>
               <div className={styles.panelHeader}>ACTION LOG</div>
               <div className={styles.logs}>
