@@ -49,7 +49,7 @@ export interface GameState {
   roomCode: string;
   phase: "lobby" | "playing" | "game_over";
   mode: "standard" | "blacksite"; 
-  theme: "dark" | "glass"; 
+  theme: "dark" | "glass" | "matrix" | "radar" | "hardware"; 
   turn: Team;
   lastStarter: Team | null; 
   board: Card[];
