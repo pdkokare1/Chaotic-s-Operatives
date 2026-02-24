@@ -64,7 +64,7 @@ export function updatePlayer(gameState: GameState, id: string, updates: Partial<
   return { ...gameState, players: gameState.players.map(p => p.id === id ? { ...p, ...updates } : p) };
 }
 
-export function startGame(gameState: GameState, options?: { category: string, timer: number, mode?: "standard" | "blacksite", theme?: "dark" | "glass" }): GameState {
+export function startGame(gameState: GameState, options?: { category: string, timer: number, mode?: "standard" | "blacksite", theme?: "dark" | "glass" | "matrix" | "radar" | "hardware" }): GameState {
   if (gameState.phase !== "lobby") return gameState;
 
   const newMode = options?.mode || "standard";
