@@ -10,7 +10,111 @@
   padding-bottom: 3rem; 
   transition: box-shadow 0.5s ease-in-out;
   position: relative;
+  z-index: 10; /* Keep above radar and vignette */
 }
+
+/* --- OVERKILL VISUALS START --- */
+
+/* Visual 2: Radar Sweep Background */
+.radarSweep {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 200vw;
+  height: 200vw;
+  margin-top: -100vw;
+  margin-left: -100vw;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(37, 99, 235, 0.05) 95%, rgba(220, 38, 38, 0.1) 100%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  animation: radarSpin 8s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes radarSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Visual 3: Deep Vignette Shadow */
+.vignetteOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.95), inset 0 0 80px rgba(0,0,0,0.8);
+}
+
+/* Visual 4: Encrypted Data Columns (Matrix Fringes) */
+.dataColumn {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  font-family: monospace;
+  font-size: 0.6rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  opacity: 0.15;
+  white-space: pre-wrap;
+  word-break: break-all;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  animation: dataScroll 40s linear infinite;
+  text-shadow: 0 0 5px rgba(255,255,255,0.3);
+}
+
+.leftColumn { left: 0; border-right: 1px solid rgba(255,255,255,0.05); padding-left: 1rem; }
+.rightColumn { right: 0; border-left: 1px solid rgba(255,255,255,0.05); padding-right: 1rem; text-align: right; }
+
+@keyframes dataScroll {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0%); }
+}
+
+/* Visual 1: Hardware Sockets & Reticles */
+.hardwareFrame {
+  position: relative;
+  background: rgba(10, 10, 10, 0.8);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 10px 30px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5);
+  backdrop-filter: blur(5px);
+}
+
+/* Targeting Bracket Corners for the Hardware Frame */
+.hardwareFrame::before, .hardwareFrame::after {
+  content: '';
+  position: absolute;
+  width: 100%; height: 100%;
+  top: 0; left: 0;
+  pointer-events: none;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+.hardwareFrame::before {
+  clip-path: polygon(0 0, 20px 0, 20px 100%, 0 100%, 0 0, 100% 0, 100% 20px, 0 20px);
+}
+.hardwareFrame::after {
+  clip-path: polygon(100% 100%, calc(100% - 20px) 100%, calc(100% - 20px) 0, 100% 0, 100% 100%, 0 100%, 0 calc(100% - 20px), 100% calc(100% - 20px));
+}
+
+/* Visual 3: Breathing Glows */
+@keyframes breatheRed {
+  0%, 100% { box-shadow: inset 0 0 150px rgba(220, 38, 38, 0.05); }
+  50% { box-shadow: inset 0 0 250px rgba(220, 38, 38, 0.15); }
+}
+@keyframes breatheBlue {
+  0%, 100% { box-shadow: inset 0 0 150px rgba(37, 99, 235, 0.05); }
+  50% { box-shadow: inset 0 0 250px rgba(37, 99, 235, 0.15); }
+}
+
+.glowRed { animation: breatheRed 4s ease-in-out infinite; }
+.glowBlue { animation: breatheBlue 4s ease-in-out infinite; }
+
+/* --- OVERKILL VISUALS END --- */
 
 .fatalGlitchContainer {
   animation: severeGlitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -25,9 +129,6 @@
   80% { transform: translate(10px, -10px); filter: hue-rotate(90deg); box-shadow: inset 0 0 200px red; }
   100% { transform: translate(0); filter: none; }
 }
-
-.glowRed { box-shadow: inset 0 0 150px rgba(220, 38, 38, 0.05); }
-.glowBlue { box-shadow: inset 0 0 150px rgba(37, 99, 235, 0.05); }
 
 .overlay {
   position: absolute;
@@ -432,6 +533,9 @@
   .sidePanel { width: 100%; min-width: 0; flex-direction: row; gap: 2rem; align-items: flex-start; }
   .rosterSection { margin-top: 0; display: flex; flex-wrap: wrap; gap: 1rem; flex: 1; }
   .progressContainer { width: 200px; flex-shrink: 0; }
+  
+  /* Hide Data Columns on Tablets/Mobile */
+  .dataColumn { display: none; }
 }
 
 /* Mobile Phones */
@@ -461,6 +565,7 @@
   .rosterPlayer { text-align: center; font-size: 0.75rem; }
 
   .grid { gap: 0.25rem; }
+  .hardwareFrame { padding: 0.5rem; }
   
   /* Clue Input Scaling */
   .clueForm, .confirmPanel { flex-direction: column; }
