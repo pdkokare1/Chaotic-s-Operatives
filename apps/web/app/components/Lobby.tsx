@@ -151,8 +151,11 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
               onChange={(e) => setSelectedTheme(e.target.value)}
               className={styles.spyDropdown}
             >
-              <option value="dark">Theme: Dark Terminal</option>
+              <option value="dark">Theme: Terminal (Minimal)</option>
               <option value="glass">Theme: Frosted Glass</option>
+              <option value="matrix">Theme: Cyber Intel</option>
+              <option value="radar">Theme: Command Center</option>
+              <option value="hardware">Theme: Tactical Rig</option>
             </select>
 
             <button onClick={startGame} className={styles.startButton}>START MISSION</button>
