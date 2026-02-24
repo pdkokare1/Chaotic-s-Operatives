@@ -25,6 +25,7 @@ export function generateGame(roomCode: string): GameState {
     roomCode,
     phase: "lobby",
     mode: "standard",
+    theme: "dark", 
     turn: TEAMS.RED,
     lastStarter: null,
     board,
@@ -39,7 +40,6 @@ export function generateGame(roomCode: string): GameState {
   };
 }
 
-// --- Player Management ---
 export function addPlayer(gameState: GameState, id: string, name: string, deviceId?: string): GameState {
   const redCount = gameState.players.filter(p => p.team === TEAMS.RED).length;
   const blueCount = gameState.players.filter(p => p.team === TEAMS.BLUE).length;
@@ -64,10 +64,11 @@ export function updatePlayer(gameState: GameState, id: string, updates: Partial<
   return { ...gameState, players: gameState.players.map(p => p.id === id ? { ...p, ...updates } : p) };
 }
 
-export function startGame(gameState: GameState, options?: { category: string, timer: number, mode?: "standard" | "blacksite" }): GameState {
+export function startGame(gameState: GameState, options?: { category: string, timer: number, mode?: "standard" | "blacksite", theme?: "dark" | "glass" }): GameState {
   if (gameState.phase !== "lobby") return gameState;
 
   const newMode = options?.mode || "standard";
+  const newTheme = options?.theme || "dark";
   const startingTeam = gameState.lastStarter === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED;
 
   let selectedTimer = options?.timer || 0;
@@ -80,7 +81,6 @@ export function startGame(gameState: GameState, options?: { category: string, ti
   }
   const shuffledWords = [...pool].sort(() => 0.5 - Math.random()).slice(0, 25);
 
-  // FIX: Explicitly typed as CardType[] instead of string[]
   let types: CardType[] = [];
   
   if (newMode === "blacksite") {
@@ -113,6 +113,7 @@ export function startGame(gameState: GameState, options?: { category: string, ti
     turn: startingTeam,
     lastStarter: startingTeam,
     mode: newMode,
+    theme: newTheme,
     board: newBoard,
     scores: { red: startingTeam === TEAMS.RED ? 9 : 8, blue: startingTeam === TEAMS.BLUE ? 9 : 8 },
     timerDuration: selectedTimer,
@@ -121,8 +122,6 @@ export function startGame(gameState: GameState, options?: { category: string, ti
     logs: [...gameState.logs, `Mission Started. ${newMode.toUpperCase()} Protocol. ${startingTeam.toUpperCase()} Team, awaiting orders.`]
   };
 }
-
-// --- Gameplay Logic ---
 
 export function giveClue(gameState: GameState, word: string, number: number): GameState {
   if (gameState.phase !== "playing") return gameState;
@@ -173,7 +172,6 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   const currentTeam = newState.turn;
   const opponentTeam = currentTeam === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED;
 
-  // Rule Application
   if (card.type === CARD_TYPES.ASSASSIN) {
     newState.phase = "game_over";
     newState.winner = opponentTeam;
