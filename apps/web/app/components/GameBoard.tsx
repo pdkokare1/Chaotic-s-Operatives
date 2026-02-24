@@ -13,6 +13,11 @@ interface GameBoardProps {
   gameState: GameState;
 }
 
+// Visual 4: Static Hex Data for the Encrypted Columns
+const hexString = Array.from({ length: 80 })
+  .map((_, i) => `0x${(i * 13749).toString(16).toUpperCase().padStart(4, '0')} ... ERR // ${Math.random().toString(36).substring(2, 6).toUpperCase()}`)
+  .join('\n');
+
 export default function GameBoard({ gameState }: GameBoardProps) {
   const { socket } = useSocket();
   const [clueWord, setClueWord] = useState("");
@@ -169,8 +174,18 @@ export default function GameBoard({ gameState }: GameBoardProps) {
   return (
     <>
       {crtEnabled && <div className="crt-overlay" />} 
+      
+      {/* Visual 2: Animated Radar Sweep */}
+      <div className={styles.radarSweep} />
+
+      {/* Visual 3: Deep Vignette Shadow */}
+      <div className={styles.vignetteOverlay} />
+
+      {/* Visual 4: Encrypted Data Columns */}
+      <div className={`${styles.dataColumn} ${styles.leftColumn}`}>{hexString}</div>
+      <div className={`${styles.dataColumn} ${styles.rightColumn}`}>{hexString}</div>
+
       <div className={containerClass}>
-        
         {gameState.phase === "game_over" && (
           <div className={styles.overlay}>
             <div className={styles.overlayContent}>
@@ -230,26 +245,29 @@ export default function GameBoard({ gameState }: GameBoardProps) {
             </div>
           </div>
 
-          {/* CENTER: GRID */}
+          {/* CENTER: GRID WITH HARDWARE FRAME */}
           <div className={styles.gridCenter}>
-            <div className={styles.grid}>
-              {gameState.board.map((card) => {
-                const targetingTeammates = gameState.players
-                  .filter(p => p.currentTarget === card.id && p.id !== socket?.id && p.team === myPlayer?.team)
-                  .map(p => p.name);
+            {/* Visual 1: Hardware Sockets & Reticles */}
+            <div className={styles.hardwareFrame}>
+              <div className={styles.grid}>
+                {gameState.board.map((card) => {
+                  const targetingTeammates = gameState.players
+                    .filter(p => p.currentTarget === card.id && p.id !== socket?.id && p.team === myPlayer?.team)
+                    .map(p => p.name);
 
-                return (
-                  <GameCard
-                    key={card.id}
-                    card={card}
-                    onClick={() => handleCardClick(card.id)}
-                    disabled={gameState.phase === "game_over" || (isMyTurn && !isSpymaster && !gameState.currentClue)}
-                    isSpymaster={showSpymasterView}
-                    isSelected={selectedCardId === card.id} 
-                    targetingPlayers={targetingTeammates}
-                  />
-                )
-              })}
+                  return (
+                    <GameCard
+                      key={card.id}
+                      card={card}
+                      onClick={() => handleCardClick(card.id)}
+                      disabled={gameState.phase === "game_over" || (isMyTurn && !isSpymaster && !gameState.currentClue)}
+                      isSpymaster={showSpymasterView}
+                      isSelected={selectedCardId === card.id} 
+                      targetingPlayers={targetingTeammates}
+                    />
+                  )
+                })}
+              </div>
             </div>
           </div>
 
