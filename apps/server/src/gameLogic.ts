@@ -1,5 +1,5 @@
 // apps/server/src/gameLogic.ts
-import { GameState, Card, TEAMS, CARD_TYPES, Player, Team, ROLES } from "@operative/shared";
+import { GameState, Card, TEAMS, CARD_TYPES, Player, Team, ROLES, CardType } from "@operative/shared";
 import { WORD_LIST, CATEGORIZED_WORDS } from "./words";
 
 export function generateGame(roomCode: string): GameState {
@@ -39,6 +39,7 @@ export function generateGame(roomCode: string): GameState {
   };
 }
 
+// --- Player Management ---
 export function addPlayer(gameState: GameState, id: string, name: string, deviceId?: string): GameState {
   const redCount = gameState.players.filter(p => p.team === TEAMS.RED).length;
   const blueCount = gameState.players.filter(p => p.team === TEAMS.BLUE).length;
@@ -79,7 +80,9 @@ export function startGame(gameState: GameState, options?: { category: string, ti
   }
   const shuffledWords = [...pool].sort(() => 0.5 - Math.random()).slice(0, 25);
 
-  let types: string[] = [];
+  // FIX: Explicitly typed as CardType[] instead of string[]
+  let types: CardType[] = [];
+  
   if (newMode === "blacksite") {
     types = [
       ...Array(9).fill(startingTeam),
@@ -118,6 +121,8 @@ export function startGame(gameState: GameState, options?: { category: string, ti
     logs: [...gameState.logs, `Mission Started. ${newMode.toUpperCase()} Protocol. ${startingTeam.toUpperCase()} Team, awaiting orders.`]
   };
 }
+
+// --- Gameplay Logic ---
 
 export function giveClue(gameState: GameState, word: string, number: number): GameState {
   if (gameState.phase !== "playing") return gameState;
@@ -168,6 +173,7 @@ export function makeMove(gameState: GameState, cardId: string): GameState {
   const currentTeam = newState.turn;
   const opponentTeam = currentTeam === TEAMS.RED ? TEAMS.BLUE : TEAMS.RED;
 
+  // Rule Application
   if (card.type === CARD_TYPES.ASSASSIN) {
     newState.phase = "game_over";
     newState.winner = opponentTeam;
