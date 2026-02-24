@@ -19,13 +19,11 @@ export default function Home() {
   const [view, setView] = useState<"welcome" | "game">("welcome");
   const [deviceId, setDeviceId] = useState("");
   
-  // NEW: Custom Toast State
   const [toast, setToast] = useState<string | null>(null);
 
-  // Helper to show custom toast instead of browser alert
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3000); // Auto dismiss after 3 seconds
+    setTimeout(() => setToast(null), 3000); 
   };
 
   useEffect(() => {
@@ -52,7 +50,7 @@ export default function Home() {
     });
 
     socket.on("error", (msg: string) => {
-      showToast(msg); // Upgraded from alert(msg)
+      showToast(msg); 
       setLoading(false);
     });
 
@@ -62,14 +60,23 @@ export default function Home() {
     };
   }, [socket]);
 
+  // NEW: Theming Engine Global Setter
+  useEffect(() => {
+    if (gameState?.theme) {
+      document.documentElement.setAttribute('data-theme', gameState.theme);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark'); // Default
+    }
+  }, [gameState?.theme]);
+
   const handleCreateGame = () => {
-    if (!socket || !playerName) return showToast("PLEASE ENTER CODENAME"); // Upgraded from alert
+    if (!socket || !playerName) return showToast("PLEASE ENTER CODENAME"); 
     setLoading(true);
     socket.emit("create_game", { hostName: playerName, deviceId });
   };
 
   const handleJoinGame = () => {
-    if (!socket || !joinCode || !playerName) return showToast("PLEASE ENTER NAME AND CODE"); // Upgraded from alert
+    if (!socket || !joinCode || !playerName) return showToast("PLEASE ENTER NAME AND CODE"); 
     setLoading(true);
     socket.emit("join_game", { roomCode: joinCode, playerName, deviceId });
   }
@@ -87,7 +94,6 @@ export default function Home() {
   if (view === "welcome") {
     return (
       <main className={styles.container}>
-        {/* Render Toast notification if exists */}
         {toast && <div className={styles.toast}>{toast}</div>}
 
         <h1 className={styles.title}>OPERATIVE</h1>
