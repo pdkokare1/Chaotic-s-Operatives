@@ -18,6 +18,7 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
   const [selectedCategory, setSelectedCategory] = useState("Standard Mix");
   const [selectedTimer, setSelectedTimer] = useState(0);
   const [selectedMode, setSelectedMode] = useState("standard"); 
+  const [selectedTheme, setSelectedTheme] = useState("dark"); // NEW: Theming Engine
 
   const [localPlayers, setLocalPlayers] = useState(gameState.players);
 
@@ -47,7 +48,7 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
     socket?.emit("change_role", role); 
   };
   
-  const startGame = () => { socket?.emit("start_game", { category: selectedCategory, timer: selectedTimer, mode: selectedMode }); };
+  const startGame = () => { socket?.emit("start_game", { category: selectedCategory, timer: selectedTimer, mode: selectedMode, theme: selectedTheme }); };
 
   const leaveMission = () => {
     if (confirm("Are you sure you want to leave this mission?")) {
@@ -143,6 +144,15 @@ export default function Lobby({ gameState, currentPlayerId }: LobbyProps) {
             >
               <option value="standard">Standard Operation</option>
               <option value="blacksite">Blacksite Protocol</option>
+            </select>
+
+            <select 
+              value={selectedTheme} 
+              onChange={(e) => setSelectedTheme(e.target.value)}
+              className={styles.spyDropdown}
+            >
+              <option value="dark">Theme: Dark Terminal</option>
+              <option value="glass">Theme: Frosted Glass</option>
             </select>
 
             <button onClick={startGame} className={styles.startButton}>START MISSION</button>
