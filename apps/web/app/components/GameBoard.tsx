@@ -176,14 +176,18 @@ export default function GameBoard({ gameState }: GameBoardProps) {
       {crtEnabled && <div className="crt-overlay" />} 
       
       {/* Visual 2: Animated Radar Sweep */}
-      <div className={styles.radarSweep} />
+      {gameState.theme === 'radar' && <div className={styles.radarSweep} />}
 
       {/* Visual 3: Deep Vignette Shadow */}
-      <div className={styles.vignetteOverlay} />
+      {(gameState.theme === 'radar' || gameState.theme === 'hardware') && <div className={styles.vignetteOverlay} />}
 
       {/* Visual 4: Encrypted Data Columns */}
-      <div className={`${styles.dataColumn} ${styles.leftColumn}`}>{hexString}</div>
-      <div className={`${styles.dataColumn} ${styles.rightColumn}`}>{hexString}</div>
+      {gameState.theme === 'matrix' && (
+        <>
+          <div className={`${styles.dataColumn} ${styles.leftColumn}`}>{hexString}</div>
+          <div className={`${styles.dataColumn} ${styles.rightColumn}`}>{hexString}</div>
+        </>
+      )}
 
       <div className={containerClass}>
         {gameState.phase === "game_over" && (
@@ -248,7 +252,7 @@ export default function GameBoard({ gameState }: GameBoardProps) {
           {/* CENTER: GRID WITH HARDWARE FRAME */}
           <div className={styles.gridCenter}>
             {/* Visual 1: Hardware Sockets & Reticles */}
-            <div className={styles.hardwareFrame}>
+            <div className={gameState.theme === 'hardware' ? styles.hardwareFrame : ''}>
               <div className={styles.grid}>
                 {gameState.board.map((card) => {
                   const targetingTeammates = gameState.players
