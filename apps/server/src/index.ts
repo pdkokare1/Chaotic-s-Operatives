@@ -168,7 +168,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("start_game", (options: { category: string, timer: number, mode: "standard" | "blacksite" }) => {
+  socket.on("start_game", (options: { category: string, timer: number, mode: "standard" | "blacksite", theme: "dark" | "glass" }) => {
     const code = socketToRoom.get(socket.id);
     if (code) {
       withLock(code, async () => {
