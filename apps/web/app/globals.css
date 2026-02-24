@@ -1,13 +1,13 @@
 /* apps/web/app/globals.css */
-:root {
-  /* --- Palette --- */
+:root, [data-theme="dark"] {
+  /* --- Original Dark Palette --- */
   --bg-app: #0a0a0a;
-  --bg-panel: #171717; /* neutral-900 */
-  --bg-card: #262626; /* neutral-800 */
-  --border: #404040; /* neutral-700 */
+  --bg-panel: #171717; 
+  --bg-card: #262626; 
+  --border: #404040; 
   
   --text-main: #ededed;
-  --text-muted: #a3a3a3; /* neutral-400 */
+  --text-muted: #a3a3a3; 
   
   --red-primary: #dc2626;
   --red-dark: #450a0a;
@@ -19,9 +19,29 @@
   
   --yellow-accent: #facc15;
   
-  /* --- Spacing & Radius --- */
   --radius: 8px;
   --radius-lg: 16px;
+}
+
+[data-theme="glass"] {
+  /* --- Theming Engine: Frosted Glass --- */
+  --bg-app: #f8fafc; 
+  --bg-panel: rgba(255, 255, 255, 0.4); 
+  --bg-card: rgba(255, 255, 255, 0.7);
+  --border: rgba(255, 255, 255, 0.6);
+  
+  --text-main: #0f172a; 
+  --text-muted: #64748b; 
+  
+  --red-primary: #ef4444;
+  --red-dark: #fca5a5;
+  --red-border: #f87171;
+  
+  --blue-primary: #3b82f6;
+  --blue-dark: #93c5fd;
+  --blue-border: #60a5fa;
+  
+  --yellow-accent: #f59e0b;
 }
 
 * {
@@ -35,12 +55,46 @@ body {
   color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
-  /* NEW: Tactical Grid Background */
+  overflow-x: hidden;
+  transition: background-color 0.5s ease;
+}
+
+/* Base Tactical Grid */
+[data-theme="dark"] body {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
   background-attachment: fixed;
+}
+
+/* Glass Abstract Orbs */
+[data-theme="glass"] body::before, [data-theme="glass"] body::after {
+  content: "";
+  position: fixed;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: -1;
+  animation: floatOrb 20s infinite alternate ease-in-out;
+  opacity: 0.6;
+}
+
+[data-theme="glass"] body::before {
+  top: -10vw; left: -10vw;
+  background: radial-gradient(circle, var(--blue-dark), transparent 70%);
+}
+
+[data-theme="glass"] body::after {
+  bottom: -10vw; right: -10vw;
+  background: radial-gradient(circle, var(--red-dark), transparent 70%);
+  animation-delay: -10s;
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(10vw, 10vw) scale(1.2); }
 }
 
 button {
@@ -54,7 +108,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Utilities */
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -68,12 +121,7 @@ button:disabled {
   to { transform: rotate(360deg); }
 }
 
-/* --- NEW: CRT Scanlines & Terminal Glow --- */
-@keyframes scanlineScroll {
-  0% { background-position: 0 0, 0 0; }
-  100% { background-position: 0 100vh, 0 0; }
-}
-
+/* CRT Logic */
 .crt-overlay {
   position: fixed;
   top: 0;
@@ -82,11 +130,19 @@ button:disabled {
   height: 100vh;
   pointer-events: none;
   z-index: 9999;
+}
+
+[data-theme="dark"] .crt-overlay {
   background: 
     linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
     linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
   background-size: 100% 3px, 3px 100%;
   box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
   opacity: 0.6;
-  animation: scanlineScroll 10s linear infinite; /* UX Graphic 3: Drifting Scanlines */
+}
+
+[data-theme="glass"] .crt-overlay {
+  background: linear-gradient(rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.02) 50%);
+  background-size: 100% 4px;
+  opacity: 0.4;
 }
