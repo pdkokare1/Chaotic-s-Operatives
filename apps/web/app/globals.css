@@ -1,5 +1,5 @@
 /* apps/web/app/globals.css */
-:root, [data-theme="dark"] {
+:root, [data-theme="dark"], [data-theme="matrix"], [data-theme="radar"], [data-theme="hardware"] {
   /* --- Original Dark Palette --- */
   --bg-app: #0a0a0a;
   --bg-panel: #171717; 
@@ -60,7 +60,7 @@ body {
 }
 
 /* Base Tactical Grid */
-[data-theme="dark"] body {
+[data-theme="dark"] body, [data-theme="matrix"] body, [data-theme="radar"] body, [data-theme="hardware"] body {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
@@ -132,7 +132,7 @@ button:disabled {
   z-index: 9999;
 }
 
-[data-theme="dark"] .crt-overlay {
+[data-theme="dark"] .crt-overlay, [data-theme="matrix"] .crt-overlay, [data-theme="radar"] .crt-overlay, [data-theme="hardware"] .crt-overlay {
   background: 
     linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
     linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
