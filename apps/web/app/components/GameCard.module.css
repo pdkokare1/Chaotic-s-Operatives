@@ -60,12 +60,16 @@
   font-size: clamp(0.6rem, 12cqi, 1.2rem); 
   text-align: center;
   padding: 0.25rem;
+  
+  /* Apply Glass Blur to all faces */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .front {
-  background: #262626; 
-  color: white;
-  border-color: #404040;
+  background: var(--bg-card); 
+  color: var(--text-main);
+  border-color: var(--border);
 }
 
 /* --- REPLACED: Spymaster Two-Tone Classified Folders --- */
@@ -73,19 +77,19 @@
   background: rgba(69, 10, 10, 0.6);
   border-color: rgba(239, 68, 68, 0.8); 
   box-shadow: inset 0 8px 0 rgba(220, 38, 38, 0.9);
-  color: white;
+  color: var(--text-main);
 }
 .hintBlue { 
   background: rgba(23, 37, 84, 0.6);
   border-color: rgba(59, 130, 246, 0.8); 
   box-shadow: inset 0 8px 0 rgba(37, 99, 235, 0.9);
-  color: white;
+  color: var(--text-main);
 }
 .hintNeutral { 
   background: rgba(38, 38, 38, 0.8);
   border-color: rgba(245, 158, 11, 0.6); 
   box-shadow: inset 0 8px 0 rgba(245, 158, 11, 0.8);
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-main);
 }
 .hintAssassin { 
   background: #000;
@@ -101,7 +105,7 @@
 .backRed { background: var(--red-primary); border-color: var(--red-border); color: white; }
 .backBlue { background: var(--blue-primary); border-color: var(--blue-border); color: white; }
 .backNeutral { background: #fef3c7; border-color: #fcd34d; color: #171717; }
-.backAssassin { background: #0a0a0a; border-color: #262626; color: var(--red-primary); }
+.backAssassin { background: var(--bg-app); border-color: var(--border); color: var(--red-primary); }
 
 .assassinIcon {
   font-size: 2rem;
