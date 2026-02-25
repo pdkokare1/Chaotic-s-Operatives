@@ -13,7 +13,7 @@
   font-weight: 900;
   margin-bottom: 2rem;
   letter-spacing: -0.05em;
-  background: linear-gradient(to right, #fff, #737373);
+  background: linear-gradient(to right, var(--text-main), #737373);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -27,6 +27,8 @@
   padding: 2rem;
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
 }
 
 .label {
@@ -42,7 +44,7 @@
   width: 100%;
   background: var(--bg-app);
   border: 1px solid var(--border);
-  color: white;
+  color: var(--text-main);
   padding: 0.75rem;
   font-size: 1.25rem;
   font-weight: bold;
@@ -51,7 +53,7 @@
   outline: none;
 }
 .input:focus {
-  border-color: white;
+  border-color: var(--text-main);
 }
 
 .buttonGroup {
@@ -63,8 +65,8 @@
 .createButton {
   width: 100%;
   padding: 1rem;
-  background: white;
-  color: black;
+  background: var(--text-main);
+  color: var(--bg-app);
   font-weight: 900;
   font-size: 1.25rem;
   letter-spacing: 0.1em;
@@ -84,7 +86,7 @@
   width: 33%;
   background: var(--bg-app);
   border: 1px solid var(--border);
-  color: white;
+  color: var(--text-main);
   text-align: center;
   font-family: monospace;
   font-size: 1rem;
@@ -105,7 +107,7 @@
 }
 .joinButton:hover:not(:disabled) {
   background: var(--border);
-  color: white;
+  color: var(--text-main);
 }
 
 /* --- NEW: Toast Notification Styling --- */
@@ -114,9 +116,9 @@
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: #000;
+  background: var(--bg-app);
   border: 1px solid var(--red-primary);
-  color: white;
+  color: var(--text-main);
   padding: 1rem 2rem;
   border-radius: 9999px;
   z-index: 9999;
